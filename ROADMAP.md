@@ -38,7 +38,7 @@
 - [ ] Integracao com SIH - Internacoes
 
 ### Indicadores
-- [ ] Separacao Indicadores de Severidade(Mortalidade+Letalidade+Gravidade)
+- [ ] Indicadores de Severidade(Mortalidade+Letalidade+Gravidade)
 - [ ] TOTAL_NASC
 - [ ] Cobertura Vacinal
 - [ ] TOTAL_INTERNS

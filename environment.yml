@@ -7,27 +7,17 @@ dependencies:
   - python=3.12
   - pip
 
-  # Data
   - numpy>=2.3
   - pandas>=2.3
   - polars>=1.40
-
-  # ML
   - scikit-learn>=1.7
   - prophet
   - xgboost
-
   - geopandas
   - shapely
-
-  # Visualização
   - streamlit
   - plotly
-
-  # Tracking
   - mlflow
-
-  # Utils
   - pyyaml
   - requests
   - pytest
@@ -35,10 +25,10 @@ dependencies:
   - sentry-sdk
   - hypothesis
   - ipykernel>=6.30
+  - python-dotenv
 
   - pip:
-    - --editable .
-      - pysus==1.01
+      - -e .
+      - pysus==1.0.1
       - geobr
-  - python-dotenv
-  - booktype
+      - booktype
