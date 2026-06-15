@@ -1,0 +1,173 @@
+# Projeto SIVEGEO: Sistema de Monitoramento Epidemiológico e Geoanalítico
+
+| + title:           | SIVEGEO                                                  |
+| + createdAt:       | 16/06/2025                                               |
+| + Status:          | v1.0.0 - Produção Estável                                |
+| + Core:            | Python (Polars LazyFrames, PySUS, Prophet, Streamlit)    |
+| + Architecture:    | Modular, Stateless, In-Memory, Lazy-Evaluation           |
+| + Author:          | Jonatã Mendes                                            |
+|____________________|__________________________________________________________|
+
+## 🚀 Introdução
+
+O SIVEGEO é uma Central de Comando Analítica de alta performance projetada para o processamento, monitoramento e previsão de dados epidemiológicos públicos do SUS. Rompendo com o paradigma de arquiteturas tradicionais pesadas e amarradas a bancos de dados relacionais (SGBDs), o SIVEGEO adota um design totalmente **Stateless** e **In-Memory**, utilizando o poder de computação paralela e avaliação preguiçosa (*Lazy Evaluation*) do **Polars** para processar volumes massivos de microdados diretamente de arquivos estruturados e consultas otimizadas.
+
+### 📐 Matriz Conceitual Multidimensional (Taxonomia 4x4)
+
+O domínio de negócios do sistema é governado por uma matriz estrita que cruza 4 Dimensões Estruturais com os 4 Componentes Analíticos que ditam as agregações nos grafos do Polars:
+
+| Dimensão \ Componente | Indicadores (Brutos) | KPIs (Taxas/Razões) | Índices (Sintéticos) | Determinantes (Exógenos) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Epidemiológica** | Contagem de Casos/Óbitos brutos | Taxa de Letalidade intrínseca | Risco Epidemiológico *(v1.0.1)* | Perfis e gravidade *(v1.0.1)* |
+| **Demográfica** | População residente IBGE | Ponderação por faixa/sexo | Vulnerabilidade Etária *(v1.0.1)* | Transição demográfica *(v1.0.1)* |
+| **Territorial** | Agrupamento por nós municipais | Taxas por 100k habitantes | Vulnerabilidade Social *(v1.0.1)* | IDH, Clima e Densidade *(v1.0.1)* |
+| **Analítica** | Séries temporais acumuladas | Tendências e deltas lineares | Índice de aceleração *(v1.0.1)* | Modelagem via Prophet |
+
+## 🧭 Estrutura do Pipeline & Fluxo de Dados (Data Flow)
+
+O core do sistema opera de forma linear, determinística e puramente sob avaliação preguiçosa (*Lazy Evaluation*), minimizando o consumo de memória através de streaming de dados:
+
+1. **Data Loader (`pysus.py`):** Consome dados brutos diretamente das APIs do DATASUS (SINAN, SIM) e IBGE via biblioteca `PySUS`. O armazenamento intermediário aproveita o formato colunar Parquet, escaneado de forma nativa (`pl.scan_parquet`).
+
+2. **Processor (`processor.py`):** Realiza a higienização estrita dos dados (`fill_null`), parseamento de strings epidemiológicas para tipos nativos (`Date`, `Int64`, `Int32`) e decodificação vetorial da idade do paciente (`NU_IDADE_N` para `AGE`).
+
+2. **Módulo de Indicadores (`lab/services/indicators.py`):** Executa as computações de volumetria bruta, agrupando e unificando as bases espaciais para consolidar os totais de casos e óbitos filtrados por parâmetros biológicos e geográficos.
+
+3. **Módulo de KPIs (`lab/services/kpis.py`):** Motor estatístico que consome os agrupamentos lazy e injeta expressões matemáticas para o cálculo dinâmico das taxas de incidência, mortalidade e letalidade em precisão dupla de ponto flutuante.
+
+4. **Camada de Apresentação e Serviços Analíticos (`lab/services/`):** Consome os grafos de execução otimizados e acopla as bibliotecas de plotagem e inferência estatística (Prophet e Plotly), disparando a avaliação final `.collect()` estritamente na borda de renderização da interface
+
+4. **Trends Service (`plot_trends.py`):** Interface preditiva que consome as agregações temporais do Polars, convertendo-as de forma pontual para a modelagem matemática de séries temporais utilizando o algoritmo `Prophet`.
+
+5. **Visualização & Modelagem (`plot_*.py`):** Camada analítica que converte as agregações do Polars para consumo estatístico:
+   * **Séries Temporais:** Modelagem preditiva e projeções de surtos com o algoritmo `Prophet` (`ForecastView`).
+   * **Gráficos Avançados:** Geração de componentes visuais reativos (Radar, Heatmaps de densidade municipal e Gauges de evolução de incidência com cálculo de variação delta) utilizando `Plotly`.
+
+---
+
+## ✨ Funcionalidades do MVP (Camada de Serviços & API)
+
+* **Módulo de Indicadores (`indicators_page.py`):** Interface para extração e filtragem sob demanda de contagens brutas agregadas no tempo e no espaço.
+* **Módulo de KPIs (`kpis_page.py`):** Painel de monitoramento das taxas epidemiológicas e razões de engenharia sanitária estruturadas.
+* **Intensidade por Impacto Territorial (`heatmap_page.py`):** Renderiza matrizes de calor espaciais baseadas na densidade municipal de ocorrências utilizando Plotly Charts.
+* **Evolução Histórica (`historic_evolution_page.py`):** Painel de análise longitudinal para rastreamento comparativo das curvas de Incidência, Mortalidade e Letalidade ao longo do tempo.
+* **Previsão Epidemiológica (`forecast_page.py`):** Acopla o modelo aditivo do Prophet para projetar o comportamento e o surgimento de surtos futuros com bandas de incerteza estatística.
+* **Radar de Distribuição (`radar_page.py`):** Visualização polar multidimensional para traçar a assinatura epidemiológica comparativa e o comportamento de múltiplos agravos combinados.
+
+---
+
+## 🎯 Princípios do Paradigma In-Memory e Stateless
+
+* **Predicate Pushdown:** Os filtros aplicados na interface (Doença, Ano, UF, Município, Faixa Etária e Sexo) são empurrados diretamente para a base do grafo do Polars, garantindo que apenas os dados estritamente necessários sejam processados.
+* **Eliminação de Latência de I/O:** O processamento em memória elimina gargalos tradicionais de leitura e escrita em SGBDs relacionais pesados, acelerando agregações complexas de microdados brutos.
+* **Isolamento de Estado:** A aplicação mantém-se agnóstica a sessões persistentes em disco, utilizando o `st.session_state` do Streamlit para reatividade síncrona na troca de abas.
+---
+
+## 🎯 Objetivos
+
+### Objetivo Geral:
+Criar uma plataforma centralizada, inteligente e em tempo real para a gestão de informações de saúde, integrando dados epidemiológicos, demográficos e geoespaciais para construir um sistema robusto de monitoramento, visualização e análise preditiva de doenças e indicadores de saúde pública.
+
+### Problemas Solucionados:
+- **Fragmentação de Dados:** Unifica dados de saúde dispersos em diferentes sistemas e formatos.
+- **Latência na Informação:** Acelera a coleta, processamento e disseminação de dados para decisões oportunas.
+- **Subutilização de Dados:** Explora eficientemente o vasto volume de dados de saúde para gerar insights.
+- **Dificuldade no Monitoramento de Doenças Negligenciadas:** Oferece um sistema específico e integrado para o acompanhamento dessas doenças.
+- **Limitações nas Ferramentas de Análise:** Proporciona sofisticação para análises preditivas e identificação de padrões complexos.
+- **Desafios na Comunicação e Alerta:** Agiliza a comunicação de informações críticas sobre surtos e tendências.
+
+### Necessidades Atendidas:
+- Visão Unificada dos Dados de Saúde: Integra dados de diversas fontes em uma única plataforma.
+- Monitoramento em Tempo Real: Acesso a informações atualizadas para identificar tendências e surtos precocemente.
+- Análise de Dados Avançada: Ferramentas para análises preditivas, identificação de fatores de risco e avaliação de impacto de intervenções.
+- Suporte à Tomada de Decisão: Fornece informações relevantes e insights acionáveis para gestores e profissionais de saúde.
+- Fortalecimento da Vigilância Epidemiológica: Melhora a capacidade de detecção, investigação e resposta a eventos de saúde pública.
+- Aumento da Transparência e Acesso à Informação: Facilita o acesso a dados de saúde pública (com privacidade).
+- Otimização de Recursos: Oferece informações precisas para direcionar recursos eficientemente.
+
+---
+
+## 🎯 Objetivos do Paradigma Stateless
+
+* **Fragmentação de Dados:** Unifica o acesso a dados de saúde dispersos (SINAN e SIM) e demográficos (IBGE) em um único pipeline em memória.
+* **Eliminação de Latência:** Acelera o processamento de microdados brutos pesados eliminando o overhead de escrita e leitura de bancos de dados tradicionais.
+* **Sofisticação Computacional:** Substitui planilhas e agregações estáticas por avaliação preguiçosa (*lazy-evaluation*) e modelagem preditiva automatizada.
+
+---
+
+## 📊 Engenharia de Recursos & Indicadores (KPIs)
+
+O motor analítico computa indicadores epidemiológicos padronizados diretamente em memória (`kpis.py`), eliminando pré-agregações estáticas no disco:
+
+* **Taxa de Incidência:** `(Número de casos novos no SINAN / População residente IBGE) × 100.000`. Resolvido via join dinâmico usando o código de município (`ID_MUNICIP`) normalizado.
+* **Taxa de Letalidade:** `(Óbitos confirmados no SIM via CAUSABAS / Casos totais notificados no SINAN) × 100`.
+* **Volumetria Dinâmica:** Filtros cumulativos e lazy-evaluation por Faixa Etária (`AGE`), Unidade da Federação (`SG_UF_NOT`) e recortes temporais.
+
+## 🧠 Inteligência Preditiva e Séries Temporais
+
+O SIVEGEO isola a computação pesada de dados da inferência estatística. A camada de previsão opera sob demanda:
+1. O **Polars** consome os microdados estruturados em Parquet, aplica os predicados de filtro e executa a agregação temporal na velocidade do C++.
+2. Os dados resultantes são descarregados para a engine do **Prophet**, que realiza a modelagem matemática da série histórica.
+3. O sistema projeta tendências futuras de surtos epidemiológicos, devolvendo bandas de incerteza (limites superior e inferior a 95%) encapsuladas em estruturas nativas do **Plotly Dark**.
+
+---
+
+## 🗺️ Escopo Analítico Territorial e Populacional
+
+A engine foi projetada para suportar alta granularidade de filtros cumulativos aplicados diretamente no fluxo de dados do Polars:
+* **Filtros Territoriais:** Recortes por Unidade da Federação (UF) e Municípios.
+* **Filtros Populacionais:** Segmentação por faixas etárias estruturadas dinamicamente na API e cruzamentos temporais por ano de notificação.
+
+---
+
+## 🗺️ Roadmap de Expansão e Backlog Técnico
+
+O planejamento estratégico do ecossistema visa incorporar recursos demográficos e analíticos avançados nas próximas iterações:
+
+### 🚀 Versão 1.0.1-beta (Próxima Release)
+* 📊 **`piramid_etary`:** Ativação do módulo de extração demográfica para plotagem nativa de pirâmides etárias a partir do parse do campo `NU_IDADE_N`.
+* 🗺️ **`geomap`:** Geração de mapas coropléticos interativos integrando as malhas do `geobr` e estruturas do `geopandas` à interface reativa do Streamlit.
+* 🧬 **Índices Sintéticos & Determinantes:** Implementação de scores complexos de risco epidemiológico e acoplamento de variáveis exógenas (IDH, temperatura, pluviosidade e densidade populacional).
+
+### 🚀 Longo Prazo
+* 👶 **SINASC (Nascidos Vivos):** Correlação analítica com indicadores de saúde materna.
+* 💉 **SI-PNI (Cobertura Vacinal):** Cruzamento de dados de imunização para cálculo de índices de vulnerabilidade territorial.
+---
+
+## 💻 Como Operar (Quick Start)
+
+### Ambiente Conda
+```bash
+conda env create -f environment.yml
+conda activate sivegeo-core
+```
+
+## Inicialização do Servidor de APIs
+
+O backend responde através de Blueprints dedicados para endpoints de dados (/api/...) e views de laboratório (/lab/...).
+```bash
+streamlit run app.py
+```
+---
+## 🤝 Contribuição
+
+Este protótipo está em fase de desenvolvimento. Contribuições são bem-vindas para:
+* Reportar issues e bugs.
+* Sugere melhorias nas funcionalidades existentes.
+* Propor novas fontes de dados ou análises.
+* Otimização de queries e predicates pushdown em Polars LazyFrames.
+* Tratamento de exceções em IOs instáveis do servidor FTP do DATASUS.
+* Implementação de novos filtros baseados em Determinantes Sociais da Saúde.
+
+Por favor, abra uma issue ou envie um Pull Request.
+
+## 📄 Licença
+
+Este projeto está licenciado sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+
+## 📞 Contato
+
+Para dúvidas ou mais informações, entre em contato:
+* **[Jonata Mendes]**
+* **[jonata.turing@gmail.com/turingkernels@gmail.com]**
+```

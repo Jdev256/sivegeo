@@ -1,0 +1,44 @@
+name: sivegeo-core
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.12
+  - pip
+
+  # Data
+  - numpy>=2.3
+  - pandas>=2.3
+  - polars>=1.40
+
+  # ML
+  - scikit-learn>=1.7
+  - prophet
+  - xgboost
+
+  - geopandas
+  - shapely
+
+  # Visualização
+  - streamlit
+  - plotly
+
+  # Tracking
+  - mlflow
+
+  # Utils
+  - pyyaml
+  - requests
+  - pytest
+  - pytest-cov>=7.0
+  - sentry-sdk
+  - hypothesis
+  - ipykernel>=6.30
+
+  - pip:
+    - --editable .
+      - pysus==1.01
+      - geobr
+  - python-dotenv
+  - booktype

@@ -1,0 +1,108 @@
+[project]
+name = "sivegeo-lab"
+version = "1.0.0"
+description = "Central de Comando Analítica e Monitoramento Epidemiológico Baseado em Polars e
+readme = "README.md"
+requires-python = ">=3.12"
+
+authors = [
+    { name = "Jonata", email = "jonata.turing@gmail.com" }
+]
+
+license = { text = "MIT" }
+
+keywords = [
+    "python",
+    "data",
+    "api"
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent"
+]
+
+dependencies = [
+    "numpy>=2.3",
+    "pandas>=2.3",
+    "polars>=1.40",
+    "pysus==1.01",
+    "streamlit",
+    "prophet",
+    "plotly"
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "pytest>=8.4",
+    "pytest-cov>=7.0",
+    "ruff>=0.12",
+    "mypy>=1.17",
+    "ipykernel>=6.30",
+]
+
+ml = [
+    "scikit-learn>=1.7",
+]
+
+[build-system]
+requires = [
+    "setuptools>=80",
+    "wheel"
+]
+
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+[tool.setuptools.packages.find]
+where = ["src"]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+]
+
+ignore = []
+
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
+
+python_files = [
+    "test_*.py"
+]
+
+addopts = [
+    "--strict-markers",
+    "--cov=src",
+    "--cov-report=term"
+]
+
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+
+
+[tool.coverage.run]
+source = [
+    "src"
+]
+
+[tool.coverage.report]
+show_missing = true
