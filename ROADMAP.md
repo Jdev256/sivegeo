@@ -22,45 +22,58 @@
 - [x] Indicadores
 - [x] KPIs
 - [x] Evolução Histórica
-- [x] Heatmap
+- [x] Mapa de Calor
 - [x] Radar
-- [x] Forecast (Prophet)
+- [x] Previsoes
 
 ---
 
 ## v2.0.0 🚧
 
+### Indicadores
+- [ ] Taxa de Crescimento Universal (Ano atual - Ano anterior/Ano anterior * 100)
+- [ ] Razao de Caso-Obito
+- [ ] Sobrevivencia a Letalidade
+- [ ] Indice de Severidade (Incidencia x Letalidade)
+- [ ] Indice de Impacto = Casos * Letalidade
+- [ ] Indicadores de Severidade(Mortalidade+Letalidade+Gravidade)
+
+### Visualizações
+- [ ] Ranking de Indicadores
+
 ### Core
-- [ ] Expansao da dimensao Territorial a nivel Regional
-- [ ] Expansao da dimensao Territorial a nivel Estadual
+- [ ] Expansao da dimensao Territorial a nivel Regional com geobr
+- [ ] Expansao da dimensao Territorial a nivel Estadual com geobr
+
+### Visualizações
+- [ ] Pirâmide Etária
+
+### Core
 - [ ] Integracao com SINASC - Nascidos Vivos
-- [ ] Integracao com SI-PNI - Vacinacao
 - [ ] Integracao com SIH - Internacoes
 
 ### Indicadores
-- [ ] Indicadores de Severidade(Mortalidade+Letalidade+Gravidade)
 - [ ] TOTAL_NASC
-- [ ] Cobertura Vacinal
 - [ ] TOTAL_INTERNS
-- [ ] Indicador de Gravidade (Razao de Mortalidade/Incidencia)
-- [ ] Sobrevivencia a Letalidade
-- [ ] Razao de Caso-Obito
-- [ ] Taxa de Crescimento Universal (Ano atual - Ano anterior/Ano anterior * 100)
-- [ ] Indice de Severidade (Incidencia x Letalidade)
-- [ ] Risco (Incidencia + Mortalidade + Letalidade)
-- [ ] Indice de Impacto = Casos * Letalidade
 - [ ] Tempo Medio de Internacao
+- [ ] Cobertura Vacinal
+
+### Core
+- [ ] Integracao com SI-PNI - Vacinacao
+
+### Indicadores
+- [ ] Indicador de Gravidade (Razao de Mortalidade/Incidencia)
+- [ ] Risco (Incidencia + Mortalidade + Letalidade)
 
 ### Visualizações
-
-- [ ] Pirâmide Etária
-- [ ] Ranking de Indicadores
-- [ ] Deteccao de Anomalias
 - [ ] Mapa Geográfico
 
 ### Análises
 - [ ] Score de Risco Epidemiológico
 - [ ] Determinantes Socioambientais
+
+### Visualizações
+- [ ] Deteccao de Anomalias
 
 ---
 
