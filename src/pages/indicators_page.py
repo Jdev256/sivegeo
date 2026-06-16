@@ -29,7 +29,7 @@ with st.container(border=True):
         mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
         mun_options = ["ALL"] + list(mun_map.keys())
         selected_mun = st.selectbox("MUnicipio", mun_options)
-        mun_filter = None if selected_mun == "Todod" else selected_mun
+        mun_filter = None if selected_mun == "ALL" else selected_mun
 
     with col3:
 
