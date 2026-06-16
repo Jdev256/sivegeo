@@ -1,34 +1,21 @@
-name: sivegeo-core
+name: sivegeo-lab
 channels:
-  - conda-forge
   - defaults
-
 dependencies:
   - python=3.12
-  - pip
-
-  - numpy>=2.3
-  - pandas>=2.3
-  - polars>=1.40
-  - scikit-learn>=1.7
-  - prophet
-  - xgboost
+  - git
+  - polars
+  - ipykernel
   - geopandas
+  - prophet
   - shapely
-  - streamlit
+  - numpy
   - plotly
-  - mlflow
-  - pyyaml
-  - requests
-  - pytest
-  - pytest-cov>=7.0
+  - streamlit
+  - pip
   - sentry-sdk
-  - hypothesis
-  - ipykernel>=6.30
-  - python-dotenv
-
   - pip:
-      - -e .
-      - pysus==1.0.1
-      - geobr
-      - booktype
+    - -e .
+    - pysus==1.0.1
+    - geobr
+prefix: /home/jturingdev/miniconda3/envs/sivegeo-lab
