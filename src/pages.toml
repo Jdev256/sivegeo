@@ -9,20 +9,20 @@ name = "KPIS"
 icon = ":books:"
 url_path = "my_books" # You can override the default url path for a page
 
-[[pages]]
-path = "pages/indices_page.py"
-name = "Indices"
-icon = "🏠"
+#[[pages]]
+#path = "pages/indices_page.py"
+#name = "Indices"
+#icon = "🏠"
 
-[[pages]]
-path = "pages/determinants_page.py"
-name = "Determinantes"
-icon = "🏠"
+#[[pages]]
+#path = "pages/determinants_page.py"
+#name = "Determinantes"
+#icon = "🏠"
 
-[[pages]]
-path = "pages/distribution_page.py"
-name = "Distribuicao"
-icon = "🏠"
+#[[pages]]
+#path = "pages/distribution_page.py"
+#name = "Distribuicao"
+#icon = "🏠"
 
 [[pages]]
 path = "pages/historic_evolution_page.py"
@@ -44,12 +44,12 @@ path = "pages/heatmap_page.py"
 name = "Mapa de Intensidade"
 icon = "🏠"
 
-[[pages]]
-path = "pages/piramid_etary_page.py"
-name = "Piramide Etaria"
-icon = "🏠"
+#[[pages]]
+#path = "pages/piramid_etary_page.py"
+#name = "Piramide Etaria"
+#icon = "🏠"
 
-[[pages]]
-path = "pages/geomap_page.py"
-name = "Distribuicao Geografica"
-icon = "🏠"
+#[[pages]]
+#path = "pages/geomap_page.py"
+#name = "Distribuicao Geografica"
+#icon = "🏠"
