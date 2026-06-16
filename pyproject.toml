@@ -27,7 +27,9 @@ dependencies = [
     "numpy>=2.3",
     "pandas>=2.3",
     "polars>=1.40",
-    "pysus==1.01",
+    "pysus==1.0.1",
+    "scikit-learn",
+    "geopandas",
     "streamlit",
     "prophet",
     "plotly"
