@@ -34,6 +34,9 @@ class HeathMap:
                     y=["TOTAL_CASES", "TOTAL_DEATHS"],
                     z=[df["TOTAL_CASES"], df["TOTAL_DEATHS"]],
                     coloraxis="coloraxis",
+                    text=df.values,
+                    texttemplate="%{text}",
+                    textfont={"size": 12},
                     hovertemplate=(
                     "<b>Municipio:</b> %{x}<br>"
                     "<b>Indicador:</b> %{y}<br>"
@@ -45,6 +48,7 @@ class HeathMap:
         fig.update_layout(
             height=500,
             width=900,
+            side="top",
             coloraxis=dict(
                 colorscale="viridis",
                 colorbar=dict(title="Ocorrencias", thickness=15)
