@@ -69,6 +69,8 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.poetry]
+package-mode = false
 
 [tool.ruff]
 line-length = 100
