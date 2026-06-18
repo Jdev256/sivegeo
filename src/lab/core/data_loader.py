@@ -28,8 +28,9 @@ class Pysus:
         }
         self._geo_cache = {}
 
-    def _get_municipality_lookup(self, uf: str, year: int) -> pl.LazyFrame:
+    def _get_municipality_lookup(self, uf, year) -> pl.LazyFrame:
         years = year[0] if isinstance(year, list) else year
+        target_year = year[1] if isinstance(year, tuple) else year
         cache_key = (uf, years)
 
         if cache_key in self._geo_cache:
@@ -67,12 +68,19 @@ class Pysus:
             })
         
     def get_muns(self, uf, year) -> pl.DataFrame:
-
+        # Se for tupla, geramos a lista de anos do intervalo
+        anos = range(year[0], year[1] + 1) if isinstance(year, tuple) else [year]
+        
+        dfs = []
+        
+        for ano in anos:
+            lf = self._get_municipality_lookup(uf=uf, year=ano)
+            dfs.append(lf.select(["COD_MUN", "name_muni"]).collect())
+        
         return (
-            self._get_municipality_lookup(uf, year)
-            .select(["COD_MUN", "name_muni"])
+            pl.concat(dfs)
+            .unique()
             .sort("name_muni")
-            .collect()
         )
 
     def load_data_sim(self, cid_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[str, List[str]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
@@ -83,7 +91,7 @@ class Pysus:
 
         #if isinstance(year, int): 0 -> [0]
         #    years = [year]
-        if isinstance(year, list):
+        if isinstance(year, (list, tuple)):
             year = list(range(min(year), max(year) +1))
 
         try:
@@ -175,12 +183,12 @@ class Pysus:
             dis_code = dis_code.split()
 
         if isinstance(year, int):
-            years = [year]
-        elif isinstance(year, list):
-            years = list(range(min(year), max(year) +1))
+            year = [year]
+        elif isinstance(year, (list, tuple)):
+            year = list(range(min(year), max(year) +1))
 
         try:
-            files = sinan.get_files(dis_code=dis_code, year=years)
+            files = sinan.get_files(dis_code=dis_code, year=year)
             logger.info(files)
             print(f"DEBUG: Arquivos encontrados no servidor para os anos {year}: {files}")
             paths = sinan.download(files)
@@ -222,10 +230,10 @@ class Pysus:
                 if isinstance(year, int):
                     df = df.filter(pl.col("ANO") == year)
                 elif isinstance(year, list):
-                    if len(years) == 1:
-                        df = df.filter(pl.col("ANO") == years[0])
+                    if len(year) == 1:
+                        df = df.filter(pl.col("ANO") == year[0])
                     else:
-                        df = df.filter(pl.col("ANO").is_between(years[0], years[-1]))
+                        df = df.filter(pl.col("ANO").is_between(year[0], year[-1]))
 
             if age is not None and isinstance(age, (tuple, list)) and len(age) == 2:
                 df = df.filter(pl.col("IDADE").cast(pl.Int32).is_between(age[0], age[1]))
@@ -268,7 +276,7 @@ class Pysus:
 
         if isinstance(year, (int, str)):
             year = [int(year)]
-        elif isinstance(year, list):
+        elif isinstance(year, (list, tuple)):
             int_years = [int(y) for y in year]
             year = list(range(min(int_years), max(int_years) + 1))
         else:
@@ -343,7 +351,7 @@ class Pysus:
                 except Exception as e:
                     e.with_traceback
 
-                year = [2017]
+                year = [2017, 2025]
                 dis_input = "CHAG"
                 uf_input = "MA"
                 age = None

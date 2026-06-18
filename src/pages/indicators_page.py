@@ -20,22 +20,36 @@ with st.container(border=True):
 
     with col1:
         dis_code = st.selectbox("Doenca", options=list_diseases())
-        year = st.select_slider("Intervalo de Anos", options=list(range(2017, 2025)))
+        year = st.select_slider(
+            "Intervalo de Anos", 
+            options=list(range(2010, 2026 + 1)),
+            value=(2020, 2025)
+            )
         
     with col2:
         uf = st.selectbox("UF:", uf_map.keys())
 
         df_muns = load.get_muns(uf=uf, year=year)
-        mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
-        mun_options = ["ALL"] + list(mun_map.keys())
-        selected_mun = st.selectbox("MUnicipio", mun_options)
+
+        # DEBUG: Vamos ver o que está acontecendo aqui
+        st.write(f"DEBUG: Linhas encontradas para {uf}: {df_muns.height}")
+        
+        if df_muns.height > 0:
+            mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
+            mun_options = ["ALL"] + list(mun_map.keys())
+        else:
+            mun_options = ["ALL"] # Fallback se estiver vazio
+            st.warning("Nenhum município encontrado para os parâmetros selecionados.")
+            
+        selected_mun = st.selectbox("Municipio", mun_options)
         mun_filter = None if selected_mun == "ALL" else selected_mun
 
     with col3:
 
-        age_filter = st.select_slider(
+        age_filter = st.slider(
             "Faixa Etaria", 
-            options=list(range(0, 101)),
+            min_value=0,
+            max_value=100,
             value=(0, 100)
             )
         sex = st.selectbox("Sexo", ["ALL", "M", "F"])

@@ -30,10 +30,15 @@ dependencies = [
     "pysus==1.0.1",
     "scikit-learn",
     "geopandas",
+    "geobr",
+    "shapely",
+    "pyproj",
+    "pyogrio",
     "streamlit",
     "st-pages",
     "prophet",
-    "plotly"
+    "plotly",
+    "xlsxwriter"
 ]
 
 [project.optional-dependencies]

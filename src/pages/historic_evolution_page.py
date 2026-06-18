@@ -21,7 +21,11 @@ with st.container(border=True):
 
     with col1:
         dis_code = st.selectbox("Doenca", options=list_diseases())
-        year = st.select_slider("Intervalo de Anos", options=list(range(2017, 2025)))
+        year = st.select_slider(
+            "Intervalo de Anos", 
+            options=list(range(2010, 2026 + 1)),
+            value=(2020, 2025)
+            )
     with col2:
         uf = st.selectbox("UF:", load.uf_map.keys())
 
@@ -76,7 +80,7 @@ if st.session_state.processed_df is not None:
     df_result = st.session_state.processed_df
     fig_result = st.session_state.processed_fig
 
-    if len(df)>0:
+    if len(df_result)>0:
         st.success(f"{df} registros encontrados")
 
         with tab1:
