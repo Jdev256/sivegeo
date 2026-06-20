@@ -311,7 +311,7 @@ class Pysus:
                         elif isinstance(uf, list):
                             lf_year = lf_year.filter(pl.col("UF").is_in(uf_code))
                     if pop is not None:
-                        lf_year = lf_year.filter(pl.col("POPULACAO") > int(pop))
+                        lf_year = lf_year.filter(pl.col("POPULACAO") >= int(pop))
 
                     lookup_df = self._get_municipality_lookup(uf=uf, year=y)
         

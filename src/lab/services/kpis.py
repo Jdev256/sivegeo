@@ -11,6 +11,8 @@ class KPIS:
         self.sinan_lf = self.service.load_data_sinan(
             dis_code=dis_code, year=year, uf=uf, mun=mun, age=age, sex=sex, pop=pop
         )
+        if len(self.sinan_lf.columns) == 0:
+            raise ValueError("O servidor do DATASUS está inacessível no momento (Falha de DNS/Conexão).")
         self.cid_code = self.sinan_lf.select(pl.col("CID").first()).collect().item()
         
         self.sim_lf = self.service.load_data_sim(cid_code=self.cid_code, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)

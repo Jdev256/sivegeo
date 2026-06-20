@@ -39,6 +39,9 @@ class Indicators:
         sinan_lf = self.load.load_data_sinan(
             dis_code=disease, year=year, uf=uf, mun=mun, age=age, sex=sex, pop=pop
         )
+        if len(sinan_lf.columns) == 0:
+            # Levanta uma exceção amigável para o Streamlit capturar
+            raise ConnectionError("Falha ao comunicar com o servidor do DATASUS. Tente novamente em instantes.")
         
         cid_code = sinan_lf.select(pl.col("CID").first()).collect().item()
         
