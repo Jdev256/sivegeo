@@ -86,6 +86,6 @@ class KPIS:
         return kpis_df.collect()
 
 if __name__ == "__main__":
-    instance = KPIS(dis_code="CHAG", year=2020, uf="MA", mun=None, age=None, sex=None, pop=None)
+    instance = KPIS(dis_code="ACBI", year=2025, uf="MA", mun=None, age=None, sex=None, pop=None)
     load = instance.main()
     print(load)

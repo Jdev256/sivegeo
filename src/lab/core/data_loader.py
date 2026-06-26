@@ -28,6 +28,38 @@ class Pysus:
         }
         self._geo_cache = {}
 
+    def _get_empty_sim_schema(self) -> pl.LazyFrame:
+        """Garante o contrato de dados caso o SIM não tenha dados no ano/filtro."""
+        return pl.LazyFrame(schema={
+            "CID": pl.Utf8,
+            "DT_DEATH": pl.Date,
+            "ANO": pl.Int32,
+            "UF": pl.Int32,
+            "COD_MUN": pl.Int32,
+            "IDADE": pl.Int32,
+            "FAIXA_ETARIA": pl.Utf8,
+            "SEXO": pl.Utf8,
+            "POPULACAO": pl.Int32,
+            "name_muni": pl.Utf8,
+            "TOTAL_DEATHS": pl.UInt32
+        })
+
+    def _get_empty_sinan_schema(self) -> pl.LazyFrame:
+        """Garante o contrato de dados caso o SINAN não tenha dados no ano/filtro."""
+        return pl.LazyFrame(schema={
+            "CID": pl.Utf8,
+            "DT_NOTIFIC": pl.Date,
+            "ANO": pl.Int32,
+            "UF": pl.Int32,
+            "COD_MUN": pl.Int32,
+            "IDADE": pl.Int32,
+            "FAIXA_ETARIA": pl.Utf8,
+            "SEXO": pl.Utf8,
+            "POPULACAO": pl.Int32,
+            "name_muni": pl.Utf8,
+            "TOTAL_CASES": pl.UInt32
+        })
+
     def _get_municipality_lookup(self, uf, year) -> pl.LazyFrame:
         years = year[0] if isinstance(year, list) else year
         target_year = year[1] if isinstance(year, tuple) else year
@@ -99,8 +131,8 @@ class Pysus:
             path = sim.download(files)
 
             if not path:
-                logger.info("Nenhum dado encontrado")
-                return pl.LazyFrame()
+                logger.warning("Nenhum dado do SIM encontrado para os filtos")
+                return self._get_empty_sim_schema()
 
             if isinstance(path, list):
                 df = pl.scan_parquet([str(p) for p in path], extra_columns="ignore")
@@ -174,7 +206,7 @@ class Pysus:
             return df
         except Exception as e:
             logger.error(f"Erro no load_data_sim: {e}")
-            return pl.LazyFrame()
+            return self._get_empty_sim_schema()
 
     def load_data_sinan(self, dis_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[str, List[str]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
         sinan = SINAN().load()
@@ -194,8 +226,8 @@ class Pysus:
             paths = sinan.download(files)
 
             if not paths:
-                logger.info("Nenhum dado encontrado")
-                return pl.LazyFrame()
+                logger.info("Nenhum dado encontrado para SINAN")
+                return self._get_empty_sinan_schema()
 
             if isinstance(paths, list):
                 df = pl.scan_parquet([str(p) for p in paths], extra_columns="ignore")
@@ -261,7 +293,7 @@ class Pysus:
             return df
         except IOError as e:
             logger.error(f"Erro no I/O dos arquivos: {e}")
-            return pl.LazyFrame()
+            return self._get_empty_sinan_schema()
         
     #def load_data_sinasc(self, cid_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[int, List[int]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
     #    sinasc = SINASC().load()

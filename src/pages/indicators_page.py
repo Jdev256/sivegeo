@@ -28,7 +28,6 @@ with st.container(border=True):
         df_muns = load.get_muns(uf=uf, year=year)
 
         # DEBUG: Vamos ver o que está acontecendo aqui
-        st.write(f"DEBUG: Linhas encontradas para {uf}: {df_muns.height}")
         
         if df_muns.height > 0:
             mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
@@ -52,6 +51,7 @@ with st.container(border=True):
         sex_filter = None if sex == "ALL" else sex
         pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000)
 
+st.write(f"DEBUG: Linhas encontradas para {uf}: {df_muns.height}")
 if st.button("Calcular Indicadores", type="primary"):
     with st.spinner("Processando queries lazy e unificando bases"):
         df = service.main(
