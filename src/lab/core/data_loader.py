@@ -1,4 +1,7 @@
 import logging
+import traceback
+import time
+import inspect
 from typing import List, Union
 import polars as pl
 import pyarrow.parquet as pq
@@ -114,6 +117,66 @@ class Pysus:
             .unique()
             .sort("name_muni")
         )
+    
+    def test_connection(self, name, object, function):
+        print("=" * 70)
+        print(f"TESTANDO BASE: {name}")
+        print("=" * 70)
+
+        try:
+            inicio = time.perf_counter()
+
+            print("[1/3] Inicializando serviço...")
+            base = object.load()
+
+            t_init = time.perf_counter() - inicio
+            print(f"    ✓ Inicializado em {t_init:.2f} s")
+
+            print("\n[2/3] Consultando índice de arquivos (sem download)...")
+
+            inicio_lista = time.perf_counter()
+            arquivos = function(base)
+            t_lista = time.perf_counter() - inicio_lista
+
+            print(f"    ✓ Consulta concluída em {t_lista:.2f} s")
+
+            if arquivos is None:
+                print("    ✗ A consulta retornou None")
+                return
+
+            try:
+                quantidade = len(arquivos)
+            except Exception:
+                quantidade = "desconhecida"
+
+            print(f"    ✓ Quantidade de arquivos encontrados: {quantidade}")
+
+            print("\n[3/3] Resultado")
+
+            if quantidade == 0:
+                print("    ⚠ Conexão estabelecida, porém nenhum arquivo foi listado.")
+            else:
+                print("    ✓ Acesso ao índice do DATASUS funcionando.")
+                print("    ✓ Não foi necessário baixar nenhum arquivo.")
+                print("    ✓ O servidor respondeu corretamente.")
+
+            tempo_total = time.perf_counter() - inicio
+
+            print(f"\nTempo total: {tempo_total:.2f} segundos")
+            print("STATUS FINAL: SUCESSO\n")
+
+        except Exception as e:
+            print("\nSTATUS FINAL: ERRO\n")
+            print(f"Tipo: {type(e).__name__}")
+            print(f"Mensagem: {e}")
+
+            print("\nTraceback completo:")
+            traceback.print_exc()
+
+            return False
+
+        return True
+
 
     def load_data_sim(self, cid_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[str, List[str]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
         sim = SIM().load()
@@ -125,6 +188,14 @@ class Pysus:
         #    years = [year]
         if isinstance(year, (list, tuple)):
             year = list(range(min(year), max(year) +1))
+        else:
+            year = [year] if isinstance(year, int) else year
+
+        test = lambda base: base.get_files(group=["CID10"], year=year, uf=uf)
+
+        if not self.test_connection(name="DATASUS - SIM", object=sim, function=test):
+            logger.error("Execucao Bloqueada: falha na conexao com a base de dados SIM")
+            return self._get_empty_sim_schema()
 
         try:
             files = sim.get_files(group=["CID10"], year=year, uf=uf)
@@ -202,7 +273,7 @@ class Pysus:
             df = (df.pipe(self.processor.aggregate_sim))
 
             ibge_df = self.load_data_ibge(source="POP", year=year, uf=uf, mun=mun, pop=pop)
-            df = (df.join(ibge_df, on=["COD_MUN", "ANO"], how="left", coalesce=True))
+            df = (df.join(ibge_df, on=["COD_MUN", "ANO", "UF"], how="left", coalesce=True))
             return df
         except Exception as e:
             logger.error(f"Erro no load_data_sim: {e}")
@@ -218,6 +289,12 @@ class Pysus:
             year = [year]
         elif isinstance(year, (list, tuple)):
             year = list(range(min(year), max(year) +1))
+
+        test = lambda base: base.get_files(dis_code=dis_code, year=year)
+
+        if not self.test_connection(name="DATASUS - SINAN", object=sinan, function=test):
+            logger.error("Execucao Bloqueada: falha na conexao com a base de dados SINAN")
+            return self._get_empty_sim_schema()
 
         try:
             files = sinan.get_files(dis_code=dis_code, year=year)
@@ -289,7 +366,7 @@ class Pysus:
             df = (df.pipe(self.processor.aggregate_sinan))
         
             ibge_df = self.load_data_ibge(source="POP", year=year, uf=uf, mun=mun, pop=pop)
-            df = (df.join(ibge_df, on=["COD_MUN", "ANO"], how="left", coalesce=True))
+            df = (df.join(ibge_df, on=["COD_MUN", "ANO", "UF"], how="left", coalesce=True))
             return df
         except IOError as e:
             logger.error(f"Erro no I/O dos arquivos: {e}")
@@ -319,6 +396,10 @@ class Pysus:
             for y in year:
                 try:
                     raw = IBGE.get_population(source=source, year=y)
+
+                    if raw is None or (hasattr(raw, "columns") and len(raw.columns)==0):
+                        logger.warning(f" Sem dados do IBGE para o ano {y}, Pulando...")
+                        continue
 
                     if isinstance(raw, pl.DataFrame):
                         lf_year =  pl.LazyFrame(raw)
@@ -364,10 +445,10 @@ class Pysus:
                     raise
             
         if not dfs:
-            return pl.LazyFrame()
+            logger.warning("Nenhum dadod do IBGE carregado para o intervalo")
+            return pl.LazyFrame(schema={"COD_MUN": pl.Int32, "ANO":pl.Int32, "POPULACAO":pl.Int32, "UF":pl.Int32, "name_muni":pl.Utf8})
 
         df_final = pl.concat(dfs, how="vertical")
-
         return df_final
 
     def main(self):

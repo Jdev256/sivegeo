@@ -15,7 +15,7 @@ class ForecastView:
 
     def load(self, disease, year, uf, mun, sex, age, pop) -> pl.LazyFrame:
         load = self.service.load_data_sinan(dis_code=disease, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)
-        return load
+        return load.collect()
 
     def prepare_data(self, disease, year, uf, mun, sex, age, pop) -> pl.LazyFrame:
         load = self.load(disease=disease, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)

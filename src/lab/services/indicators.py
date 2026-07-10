@@ -8,19 +8,27 @@ class Indicators:
     def __init__(self):
         self.load = Pysus()
 
-    def _aggregate_by_geo_temporal(self, lf: pl.LazyFrame, target_col: str, group_cols: List[str] = ["CID","ANO", "UF","COD_MUN", "name_muni", "POPULACAO"]) -> pl.LazyFrame:
-        return (
+    def _aggregate_by_geo_temporal(self, lf: pl.LazyFrame, target_col: str, group_cols: List[str] = ["CID","ANO", "UF","COD_MUN"]) -> pl.LazyFrame:
+        if target_col in lf.collect_schema().names():
+            return lf
+        
+        return(
             lf.group_by(group_cols)
-            .agg(pl.col(target_col).sum())
-        ) 
+            .agg(pl.len().alias(target_col))
+        )
+        
+        #return (
+        #    lf.group_by(group_cols)
+        #    .agg(pl.col(target_col).sum())
+        #) 
     
     def total_cases(self, df: pl.LazyFrame) -> pl.LazyFrame:
-        df = self._aggregate_by_geo_temporal(df, "TOTAL_CASES", ["CID","ANO", "UF","COD_MUN", "name_muni", "POPULACAO"])
+        df = self._aggregate_by_geo_temporal(df, "TOTAL_CASES", ["CID","ANO", "UF","COD_MUN"])
         return df
     
     def total_deaths(self, df: pl.LazyFrame) -> pl.LazyFrame:
         "TOTAL GERAL"
-        df = self._aggregate_by_geo_temporal(df, "TOTAL_DEATHS", ["CID","ANO", "UF","COD_MUN", "name_muni","POPULACAO"])
+        df = self._aggregate_by_geo_temporal(df, "TOTAL_DEATHS", ["CID","ANO", "UF","COD_MUN"])
         return df
     
     def total_nasc(self, df: pl.LazyFrame) -> pl.LazyFrame:
@@ -34,25 +42,32 @@ class Indicators:
     def cobertura_vacinal(self, df: pl.LazyFrame):
         "Taxa de Vacinacao"
         return df
+
     
     def main(self, disease, year, uf, mun, age, sex, pop):
         sinan_lf = self.load.load_data_sinan(
             dis_code=disease, year=year, uf=uf, mun=mun, age=age, sex=sex, pop=pop
         )
-        if len(sinan_lf.columns) == 0:
-            # Levanta uma exceção amigável para o Streamlit capturar
+        if len(sinan_lf.collect_schema().names()) == 0:
             raise ConnectionError("Falha ao comunicar com o servidor do DATASUS. Tente novamente em instantes.")
         
         cid_code = sinan_lf.select(pl.col("CID").first()).collect().item()
         
         sim_lf = self.load.load_data_sim(cid_code=cid_code, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)
 
-        cases = self.total_cases(sinan_lf)
-        deaths = self.total_deaths(sim_lf)
+        keys = ["CID", "ANO", "UF", "COD_MUN"]
+
+        cases = self.total_cases(sinan_lf).group_by(keys).agg(pl.col("TOTAL_CASES").sum())
+        deaths = self.total_deaths(sim_lf).group_by(keys).agg(pl.col("TOTAL_DEATHS").sum())
         #ibge_lf = self.load.load_data_ibge(year=year, uf=uf, pop=pop)
         
         indicators_df = (
-            cases.join(deaths, on=["CID","ANO", "UF","COD_MUN", "name_muni","POPULACAO"], how="full", coalesce=True)
+            cases.join(
+                deaths, 
+                on=["CID","ANO", "UF","COD_MUN",], 
+                how="full", 
+                coalesce=True,
+                validate="1:1")
             .with_columns([
                 pl.col("TOTAL_CASES").fill_null(0),
                 pl.col("TOTAL_DEATHS").fill_null(0)

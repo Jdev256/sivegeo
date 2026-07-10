@@ -158,11 +158,9 @@ class DataProcessor:
     
     def parse_ibge(self, df: LazyFrame) -> LazyFrame:
         df = df.rename({"MUNIC_RES":"COD_MUN"})
-        df = df.with_columns(pl.col("COD_MUN").str.slice(0, 6).cast(pl.Int32))
-        df = df.with_columns(pl.col("ANO").cast(pl.Int32))
-        df = df.with_columns(pl.col("POPULACAO")
-                             .str.strip_chars()
-                             .cast(pl.Int32))
+        df = df.with_columns(pl.col("COD_MUN").cast(pl.Utf8).str.slice(0, 6).cast(pl.Int32, strict=False))
+        df = df.with_columns(pl.col("ANO").cast(pl.Int32, strict=False))
+        df = df.with_columns(pl.col("POPULACAO").cast(pl.Utf8).str.strip_chars().cast(pl.Int32, strict=False))
         return df
     
     def transform_ibge(self, df: LazyFrame) -> LazyFrame:

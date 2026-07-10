@@ -14,16 +14,31 @@ class Radar:
         self.indicators = Indicators()
 
     def load_data(self, diseases: Union[str, List[str]], year, uf, mun, sex, age, pop) -> pl.DataFrame:
-        instance = KPIS(dis_code=diseases, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)
-        df = instance.main()
-        #if isinstance(diseases, str):
-        #    return df.with_columns(pl.lit(diseases).alias("CID"))
-        return df
+        dis_list = [diseases] if isinstance(diseases, str) else diseases
+
+        dfs = []
+        for dis in dis_list:
+            try:
+                instance = KPIS(dis_code=diseases, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)
+                df_dis = instance.main()
+
+                if df_dis.height > 0:
+                    df_dis = df_dis.with_columns(pl.lit(dis).alias("AGRAVO")).drop("CID")
+                    dfs.append(df_dis)
+            except Exception as e:
+                print(f"erro {e}")
+        
+        if not dfs:
+            return pl.DataFrame()
+        
+        return pl.concat(dfs, how="vertical")
     
     def prepare_data(self, df: pl.DataFrame) -> pl.DataFrame:
+        if df.height == 0:
+            return df
         return (
             df
-            .group_by("CID").agg(
+            .group_by("AGRAVO").agg(
                 pl.col("TOTAL_CASES").sum(),
                 pl.col("TOTAL_DEATHS").sum(),
                 pl.col("POPULACAO").sum(),
@@ -49,7 +64,7 @@ class Radar:
             )
             .unpivot(
                 on=["INCIDENCE", "MORTALITY", "LETALITY"],
-                index=["CID"],
+                index=["AGRAVO"],
                 variable_name="INDICADOR",
                 value_name="VALUE")
         )
@@ -58,8 +73,12 @@ class Radar:
     def plot(self, df: pl.DataFrame) -> go.Figure:
 
         fig = go.Figure()
+
+        if df.height == 0:
+            fig.update_layout(title="Nenhum dado")
+            return fig
         
-        diseases = df["CID"].unique().to_list()
+        diseases = df["AGRAVO"].unique().to_list()
 
         label_map = {
             "INCIDENCE_RAW": "<b>Incidência</b>",
@@ -68,7 +87,7 @@ class Radar:
         }
 
         for dis in diseases:
-            df_disease = df.filter(pl.col("CID")==dis)
+            df_disease = df.filter(pl.col("AGRAVO")==dis)
             
             r = df_disease["VALUE"].to_list()
             theta_list = [label_map.get(t, t) for t in df_disease["INDICADOR"].to_list()]

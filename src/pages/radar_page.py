@@ -1,8 +1,17 @@
+import contextlib
+
 import streamlit as st
 from pysus.online_data.SINAN import list_diseases
 from lab.core.data_loader import Pysus
 from lab.services.kpis import KPIS
 from lab.services.radar import Radar
+from utils import StreamlitStdoutRedirector
+
+
+st.set_page_config(
+    page_title="SIVEGEO",
+    layout="wide"
+)
 
 @st.cache_resource
 def init_services():
@@ -16,8 +25,6 @@ if "processed_fig" not in st.session_state:
     st.session_state.processed_fig = None
 
 uf_map = load.uf_map
-
-st.title("Radar de Distribuicao")
 
 with st.container(border=True):
     col1, col2, col3, col4 = st.columns(4)
@@ -45,34 +52,66 @@ with st.container(border=True):
         sex = st.selectbox("Sexo", ["ALL", "M", "F"])
         sex_filter = None if sex == "ALL" else sex
         pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000)
+    
+    calc = st.button(
+        "Calcular Indicadores",
+        type="primary",
+    )
+
+with st.container(border=True):
+    log_container = st.container(height=400)
+    with log_container:
+        log_box = st.empty()
+
+if calc:
+    if not dis_code:
+        st.warning("Selecione pelo menos um agravo")
+        st.stop()
+    
+    custom_stream = StreamlitStdoutRedirector(log_box)
+    with contextlib.redirect_stdout(custom_stream):
+
+        with st.spinner("Testando conexao com DATASUS"):
+            try:
+                df = service.load_data(
+                    diseases=dis_code, 
+                    year=year, 
+                    uf=uf, 
+                    mun=mun_filter,
+                    age=age_filter,
+                    sex=sex_filter,
+                    pop=int(pop)
+                )
+        
+                fig = service.main(
+                    dis=dis_code,
+                    year=year,
+                    uf=uf,
+                    mun=mun_filter,
+                    age=age_filter,
+                    sex=sex_filter,
+                    pop=int(pop)
+                )
+                
+                if df is None:
+                    st.warning("⚠️ Não foi possível carregar os dados. Motivo: Conexão com o DATASUS falhou")
+                    st.info("ℹ️ Verifique o terminal do servidor para ver o log detalhado")
+                
+                elif df.height == 0:
+                    st.warning("Nenhum registro encontrado")
+                    st.info("Verifique o terminal do servidor para mais informacoes")
+                
+                else:
+                    st.success("✅ Conexão estabelecida")
+                    st.success("✅ Dados processados com sucesso!")
+                    st.session_state.processed_df = df
+                    st.session_state.processed_fig = fig
+            
+            except Exception as e:
+                st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
+                st.session_state.processed_df = None
 
 tab1, tab2 = st.tabs(["Grafico", "Tabela"])
-
-if st.button("Calcular", type="primary"):
-    with st.spinner("Processando queries lazy e unificando bases"):
-        df = service.load_data(
-            diseases=dis_code, 
-            year=year, 
-            uf=uf, 
-            mun=mun_filter,
-            age=age_filter,
-            sex=sex_filter,
-            pop=int(pop)
-            )
-        
-        fig = service.main(
-            dis=dis_code,
-            year=year,
-            uf=uf,
-            mun=mun_filter,
-            age=age_filter,
-            sex=sex_filter,
-            pop=int(pop)
-        )
-
-        st.session_state.processed_df = df
-        st.session_state.processed_fig = fig
-
 
 if st.session_state.processed_df is not None:
     df_result = st.session_state.processed_df
