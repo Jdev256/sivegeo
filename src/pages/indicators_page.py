@@ -1,3 +1,5 @@
+import traceback
+
 import streamlit as st
 import io
 import contextlib
@@ -107,6 +109,7 @@ if calc:
             
             except Exception as e:
                 st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
+                st.code(traceback.format_exc(), language="python")
                 st.session_state.processed_df = None
 
 if st.session_state.processed_df is not None:

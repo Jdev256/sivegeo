@@ -1,4 +1,5 @@
 import contextlib
+import traceback
 
 import streamlit as st
 from pysus.online_data.SINAN import list_diseases
@@ -110,6 +111,7 @@ if calc:
             
             except Exception as e:
                 st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
+                st.code(traceback.format_exc(), language="python")
                 st.session_state.processed_df = None
 
 tab1, tab2 = st.tabs(["Grafico", "Tabela"])
