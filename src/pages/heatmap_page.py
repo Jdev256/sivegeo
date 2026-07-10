@@ -31,7 +31,9 @@ with st.container(border=True):
 
     with col1:
         dis_code = st.selectbox("Doenca", options=list_diseases())
-        year = st.select_slider("Intervalo de Anos", options=list(range(2017, 2025)))
+        year = st.select_slider("Intervalo de Anos", 
+                                options=list(range(2017, 2025)),
+                                value=(2017,2020))
         
     with col2:
         uf = st.selectbox("UF:", uf_map.keys())

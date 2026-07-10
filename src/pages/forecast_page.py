@@ -32,7 +32,7 @@ with st.container(border=True):
         year = st.select_slider(
             "Intervalo de Anos", 
             options=list(range(2010, 2026 + 1)),
-            value=(2017, 2025)
+            value=(2017, 2020)
             )
         periods = st.number_input("Periodos", min_value=30)
     with col2:
