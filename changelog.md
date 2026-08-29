@@ -4,6 +4,16 @@ Todos os marcos relevantes do projeto serão documentados aqui.
 
 
 ---
+# [1.1.0] - 2026-08-27
+### Corrections
+    - warning logs filters before execute processing
+    - redundant jois and aggregations unifield and consolidation
+
+### Added
+    - lock filters processing flag st.session rerun
+    - Ranking Indicators Bar Graph Page
+    - PiramidEtary Graph Plotly Bar and Page
+---
 
 # [1.0.2] - 2026-07-09
 ### Correctins

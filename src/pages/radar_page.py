@@ -25,6 +25,15 @@ if "processed_df" not in st.session_state:
 if "processed_fig" not in st.session_state:
     st.session_state.processed_fig = None
 
+if "is_processing" not in st.session_state:
+    st.session_state.is_processing = False
+
+if "last_error" not in st.session_state:
+    st.session_state.last_error = None
+
+if "last_traceback" not in st.session_state:
+    st.session_state.last_traceback = None
+
 uf_map = load.uf_map
 
 with st.container(border=True):
@@ -54,24 +63,64 @@ with st.container(border=True):
         sex = st.selectbox("Sexo", ["ALL", "M", "F"])
         sex_filter = None if sex == "ALL" else sex
         pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000)
-    
-    calc = st.button(
-        "Calcular Indicadores",
-        type="primary",
+
+    st.markdown(
+        """
+        <div stule="
+            background-color:#4d0000;
+            border:3px solid #ff1s1a;
+            border-radius:8px;
+            padding: 16px 20px;
+            margin-top:8px;
+            marginbottom: 14px;
+        ">
+        <p style="color:#ffffff; font-size:17px; font-weigth:800; margin: 0 0 8px 0;">
+         🚨 ATENÇÃO — NÃO INTERROMPA O PROCESSAMENTO 🚨
+        </p>
+        <p style="color:#ffdddd; font-size:14.5px; margin:0 0 6px 0; line-height: 1.5;">
+            Durante o carregamento nao altere o filtro e nem execute nanhuma acao ate que o resultado apareca na tela. 
+            Não recarregue a página (F5) e não navegue para outra página do sistema.
+        </p>
+        <p style="color:#ffdddd; font-size:14.5px; margin:0; line-height:1.5;">
+                ⚠️ <b>Por quê isso importa:</b> o sistema baixa e processa arquivos grandes do DATASUS em segundo plano.
+                Se o processamento for interrompido no meio, um arquivo pode ficar <b>parcialmente baixado/corrompido</b>
+                no cache do servidor. Nas próximas tentativas com os mesmos filtros, o sistema tentará reaproveitar
+                esse arquivo quebrado e pode entrar em <b>carregamento infinito (loop travado)</b>, exigindo reinício
+                manual da aplicação para ser corrigido.
+            </p>
+            <p style="color:#ffffff; font-size:14.5px; margin:10px 0 0 0; font-weight:700;">
+                ✅ Ajuste todos os filtros primeiro. Só então clique em Calcular. Depois disso, espere.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
+
+    calc = st.button("Calcular Indicadores", type="primary", disabled=st.session_state.is_processing)
+
+    if calc:
+        st.session_state.is_processing = True
+        st.rerun()
 
 with st.container(border=True):
     log_container = st.container(height=400)
     with log_container:
         log_box = st.empty()
 
-if calc:
+if st.session_state.is_processing:
     if not dis_code:
         st.warning("Selecione pelo menos um agravo")
         st.stop()
     
     custom_stream = StreamlitStdoutRedirector(log_box)
     with contextlib.redirect_stdout(custom_stream):
+
+        st.warning(
+            "⏳ Processando... **NÃO interrompa, não mude filtros e não recarregue a página** "
+            "até o resultado aparecer. Interromper agora pode corromper o cache e travar o sistema "
+            "em carregamento infinito.",
+            icon="🚨",
+        )
 
         with st.spinner("Testando conexao com DATASUS"):
             try:
@@ -108,11 +157,13 @@ if calc:
                     st.success("✅ Dados processados com sucesso!")
                     st.session_state.processed_df = df
                     st.session_state.processed_fig = fig
-            
+
             except Exception as e:
-                st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
-                st.code(traceback.format_exc(), language="python")
                 st.session_state.processed_df = None
+                st.session_state.last_error = f"🚨 Erro crítico: {type(e).__name__} - {e}"
+                st.session_state.last_traceback = traceback.format_exc()
+            st.session_state.is_processing = False
+            st.rerun()
 
 tab1, tab2 = st.tabs(["Grafico", "Tabela"])
 

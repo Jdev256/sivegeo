@@ -1,10 +1,11 @@
-import contextlib
 import traceback
 
 import streamlit as st
+import io
+import contextlib
 from pysus.online_data.SINAN import list_diseases
 from lab.core.data_loader import Pysus
-from lab.services.heatmap import HeatMap
+from lab.services.ranking import Ranking
 from utils import StreamlitStdoutRedirector
 
 st.set_page_config(
@@ -12,68 +13,73 @@ st.set_page_config(
     layout="wide"
 )
 
+
 @st.cache_resource
 def init_services():
-    return Pysus(), HeatMap()
+    return Pysus(), Ranking()
+
 
 load, service = init_services()
 
-uf_map = load.uf_map
-
-st.title("Intensidade por Impacto Territorial")
-
-if "proceseed_df" not in st.session_state:
+if "processed_df" not in st.session_state:
     st.session_state.processed_df = None
 if "processed_fig" not in st.session_state:
     st.session_state.processed_fig = None
-
 if "is_processing" not in st.session_state:
     st.session_state.is_processing = False
 
-if "last_error" not in st.session_state:
-    st.session_state.last_error = None
+uf_map = load.uf_map
 
-if "last_traceback" not in st.session_state:
-    st.session_state.last_traceback = None
+st.title("Ranking de Indicadores")
 
 with st.container(border=True):
     col1, col2, col3, = st.columns(3)
 
     with col1:
         dis_code = st.selectbox("Doenca", options=list_diseases(), disabled=st.session_state.is_processing)
-        year = st.select_slider("Intervalo de Anos", 
-                                options=list(range(2017, 2025)),
-                                value=(2017,2020), disabled=st.session_state.is_processing)
-        
+        year = st.select_slider("Intervalo de Anos",
+                                options=list(range(2017, 2026 + 1)),
+                                value=(2017, 2020), disabled=st.session_state.is_processing)
+
     with col2:
         uf = st.selectbox("UF:", uf_map.keys(), disabled=st.session_state.is_processing)
 
         df_muns = load.get_muns(uf=uf, year=year)
-        mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
-        mun_options = ["ALL"] + list(mun_map.keys())
-        selected_mun = st.selectbox("MUnicipio", mun_options, disabled=st.session_state.is_processing)
+
+        if df_muns.height is not None and df_muns.height > 0:
+            mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
+            mun_options = ["ALL"] + list(mun_map.keys())
+        else:
+            mun_options = ["ALL"]  # Fallback se estiver vazio
+            st.warning("Nenhum município encontrado para os parâmetros selecionados.")
+
+        selected_mun = st.selectbox("Municipio", mun_options, disabled=st.session_state.is_processing)
         mun_filter = None if selected_mun == "ALL" else selected_mun
 
     with col3:
 
-        age_filter = st.select_slider(
-            "Faixa Etaria", 
-            options=list(range(0, 101)),
-            value=(0, 100), disabled=st.session_state.is_processing
-            )
+        age_filter = st.slider(
+            "Faixa Etaria",
+            min_value=0,
+            max_value=100,
+            value=(0, 100),
+            disabled=st.session_state.is_processing
+        )
         sex = st.selectbox("Sexo", ["ALL", "M", "F"], disabled=st.session_state.is_processing)
         sex_filter = None if sex == "ALL" else sex
-        pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000, disabled=st.session_state.is_processing)
+        pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000,
+                              disabled=st.session_state.is_processing)
+        metric_input = st.selectbox("Metrica", ["INCIDENCE", "MORTALITY", "LETALITY"], disabled=st.session_state.is_processing)
 
     st.markdown(
         """
-        <div stule="
+        <div style="
             background-color:#4d0000;
             border:3px solid #ff1s1a;
             border-radius:8px;
             padding: 16px 20px;
             margin-top:8px;
-            marginbottom: 14px;
+            margin-bottom: 14px;
         ">
         <p style="color:#ffffff; font-size:17px; font-weigth:800; margin: 0 0 8px 0;">
          🚨 ATENÇÃO — NÃO INTERROMPA O PROCESSAMENTO 🚨
@@ -96,12 +102,13 @@ with st.container(border=True):
         """,
         unsafe_allow_html=True
     )
-
     calc = st.button("Calcular Indicadores", type="primary", disabled=st.session_state.is_processing)
 
     if calc:
         st.session_state.is_processing = True
         st.rerun()
+
+st.write(f"DEBUG: Linhas encontradas para {uf}: {df_muns.height}")
 
 with st.container(border=True):
     log_container = st.container(height=400)
@@ -109,8 +116,9 @@ with st.container(border=True):
         log_box = st.empty()
 
 if st.session_state.is_processing:
-    
+
     custom_stream = StreamlitStdoutRedirector(log_box)
+
     with contextlib.redirect_stdout(custom_stream):
 
         st.warning(
@@ -122,16 +130,17 @@ if st.session_state.is_processing:
 
         with st.spinner("Testando conexao com DATASUS"):
             try:
-                df = service.prepare_data(
-                    disease=dis_code, 
-                    year=year, 
-                    uf=uf, 
+                load = service.load_data(
+                    disease=dis_code,
+                    year=year,
+                    uf=uf,
                     mun=mun_filter,
-                    age=age_filter,
                     sex=sex_filter,
-                    pop=int(pop)
+                    age=age_filter,
+                    pop=pop
                 )
-            
+                df = service.prepare_data(df=load, metric=metric_input)
+
                 fig = service.main(
                     disease=dis_code,
                     year=year,
@@ -139,27 +148,26 @@ if st.session_state.is_processing:
                     mun=mun_filter,
                     age=age_filter,
                     sex=sex_filter,
-                    pop=int(pop)
+                    pop=int(pop),
+                    metric=metric_input
                 )
-                
-                if df is None:
+
+                if load is None:
                     st.warning("⚠️ Não foi possível carregar os dados. Motivo: Conexão com o DATASUS falhou")
                     st.info("ℹ️ Verifique o terminal do servidor para ver o log detalhado")
-                
-                elif df.height == 0:
+
+                elif load.height == 0:
                     st.warning("Nenhum registro encontrado")
                     st.info("Verifique o terminal do servidor para mais informacoes")
-                
+
                 else:
-                    st.success("✅ Conexão estabelecida")
-                    st.success("✅ Dados processados com sucesso!")
                     st.session_state.processed_df = df
                     st.session_state.processed_fig = fig
 
             except Exception as e:
+                st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
+                st.code(traceback.format_exc(), language="python")
                 st.session_state.processed_df = None
-                st.session_state.last_error = f"🚨 Erro crítico: {type(e).__name__} - {e}"
-                st.session_state.last_traceback = traceback.format_exc()
             st.session_state.is_processing = False
             st.rerun()
 
@@ -168,11 +176,13 @@ if st.session_state.processed_df is not None:
     df_result = st.session_state.processed_df
     fig_result = st.session_state.processed_fig
 
-    if df_result.height > 0:
-        st.success(f"Dados processados com sucesso! {df.height} encontrados")
+    st.success("✅ Conexão estabelecida")
+    st.success("✅ Dados processados com sucesso!")
+    st.metric(label="Total de Linhas Carregadas", value=f"{df_result.height:,}")
+    if len(df_result)>0:
         with tab1:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig_result)
         with tab2:
-            tab2.dataframe(df, height=250, use_container_width=True)
+            st.dataframe(df_result, use_container_width=True)
     else:
-        st.warning(f"Nenhum registro encontrado")
+        st.warning("Erro nenhum resultado encontrado")

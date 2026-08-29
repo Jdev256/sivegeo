@@ -28,52 +28,62 @@
 
 ---
 
-## v2.0.0 🚧
+## v1.1.0
 
-### Indicadores
-- [ ] Taxa de Crescimento Universal (Ano atual - Ano anterior/Ano anterior * 100)
-- [ ] Razao de Caso-Obito
-- [ ] Sobrevivencia a Letalidade
-- [ ] Indice de Severidade (Incidencia x Letalidade)
-- [ ] Indice de Impacto = Casos * Letalidade
-- [ ] Indicadores de Severidade(Mortalidade+Letalidade+Gravidade)
-
-### Visualizações
+### Graficos
 - [ ] Ranking de Indicadores
+- [ ] Pirâmide Etária
+
+---
+
+## v1.2.0
 
 ### Core
 - [ ] Expansao da dimensao Territorial a nivel Regional com geobr
 - [ ] Expansao da dimensao Territorial a nivel Estadual com geobr
 
-### Visualizações
-- [ ] Pirâmide Etária
+### Graficos
+- [ ] Mapa Geografico
+
+---
+
+## v2.0.0 🚧
 
 ### Core
 - [ ] Integracao com SINASC - Nascidos Vivos
 - [ ] Integracao com SIH - Internacoes
-
+- [ ] Integracao com SI-PNI - Vacinacao
+- 
 ### Indicadores
 - [ ] TOTAL_NASC
 - [ ] TOTAL_INTERNS
 - [ ] Tempo Medio de Internacao
 - [ ] Cobertura Vacinal
+- [ ] Taxa de Crescimento Universal (Ano atual - Ano anterior/Ano anterior * 100)
+- [ ] Razao de Caso-Obito
+- [ ] Sobrevivencia a Letalidade
+- 
+### Indices
+- [ ] Indice de Risco Epidemico Populacional(Incidencia+Mortalidade+Cobertura Vacinal+Velocidade)
+- [ ] Indice de Severidade (Incidencia x Letalidade)
+- [ ] Indice de Impacto = Casos * Letalidade
+- [ ] Indicadores de Severidade(Mortalidade+Letalidade+Gravidade)
 
-### Core
-- [ ] Integracao com SI-PNI - Vacinacao
+### Determinantes
+- [ ] IDH
+- [ ] Densidade Populacional
 
 ### Indicadores
 - [ ] Indicador de Gravidade (Razao de Mortalidade/Incidencia)
 - [ ] Risco (Incidencia + Mortalidade + Letalidade)
 
-### Visualizações
-- [ ] Mapa Geográfico
-
 ### Análises
 - [ ] Score de Risco Epidemiológico
 - [ ] Determinantes Socioambientais
 
-### Visualizações
+### Novos Graficos
 - [ ] Deteccao de Anomalias
+- [ ] Gerador de Area de Risco
 
 ---
 

@@ -12,5 +12,4 @@ if not PAGES_TOML_PATH.exists():
 nav = get_nav_from_toml(str(PAGES_TOML_PATH))
 pg = st.navigation(nav)
 
-add_page_title(pg)
 pg.run()

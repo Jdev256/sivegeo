@@ -23,23 +23,30 @@ load, service = init_services()
 if "processed_df" not in st.session_state:
     st.session_state.processed_df = None
 
+if "is_processing" not in st.session_state:
+    st.session_state.is_processing = False
+
+if "last_error" not in st.session_state:
+    st.session_state.last_error = None
+
+if "last_traceback" not in st.session_state:
+    st.session_state.last_traceback = None
+
 uf_map = load.uf_map
 
 st.title("Indicadores")
-
-#filter_col,console_col = st.columns([2, 1])
 
 with st.container(border=True):
     col1, col2, col3, = st.columns(3)
 
     with col1:
-        dis_code = st.selectbox("Doenca", options=list_diseases())
+        dis_code = st.selectbox("Doenca", options=list_diseases(), disabled=st.session_state.is_processing)
         year = st.select_slider("Intervalo de Anos", 
                                 options=list(range(2017, 2026 + 1)), 
-                                value=(2017,2020))
+                                value=(2017,2020), disabled=st.session_state.is_processing)
         
     with col2:
-        uf = st.selectbox("UF:", uf_map.keys())
+        uf = st.selectbox("UF:", uf_map.keys(), disabled=st.session_state.is_processing)
 
         df_muns = load.get_muns(uf=uf, year=year)
         
@@ -50,7 +57,7 @@ with st.container(border=True):
             mun_options = ["ALL"] # Fallback se estiver vazio
             st.warning("Nenhum município encontrado para os parâmetros selecionados.")
             
-        selected_mun = st.selectbox("Municipio", mun_options)
+        selected_mun = st.selectbox("Municipio", mun_options, disabled=st.session_state.is_processing)
         mun_filter = None if selected_mun == "ALL" else selected_mun
 
     with col3:
@@ -59,30 +66,68 @@ with st.container(border=True):
             "Faixa Etaria", 
             min_value=0,
             max_value=100,
-            value=(0, 100)
+            value=(0, 100),
+            disabled=st.session_state.is_processing
             )
-        sex = st.selectbox("Sexo", ["ALL", "M", "F"])
+        sex = st.selectbox("Sexo", ["ALL", "M", "F"], disabled=st.session_state.is_processing)
         sex_filter = None if sex == "ALL" else sex
-        pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000)
+        pop = st.number_input("Populacao minima", min_value=0, value=10000, step=5000, disabled=st.session_state.is_processing)
 
-    calc = st.button(
-        "Calcular Indicadores",
-        type="primary",
+    st.markdown(
+        """
+        <div style="
+            background-color:#4d0000;
+            border:3px solid #ff1s1a;
+            border-radius:8px;
+            padding: 16px 20px;
+            margin-top:8px;
+            margin-bottom: 14px;
+        ">
+        <p style="color:#ffffff; font-size:17px; font-weigth:800; margin: 0 0 8px 0;">
+         🚨 ATENÇÃO — NÃO INTERROMPA O PROCESSAMENTO 🚨
+        </p>
+        <p style="color:#ffdddd; font-size:14.5px; margin:0 0 6px 0; line-height: 1.5;">
+            Durante o carregamento nao altere o filtro e nem execute nanhuma acao ate que o resultado apareca na tela. 
+            Não recarregue a página (F5) e não navegue para outra página do sistema.
+        </p>
+        <p style="color:#ffdddd; font-size:14.5px; margin:0; line-height:1.5;">
+                ⚠️ <b>Por quê isso importa:</b> o sistema baixa e processa arquivos grandes do DATASUS em segundo plano.
+                Se o processamento for interrompido no meio, um arquivo pode ficar <b>parcialmente baixado/corrompido</b>
+                no cache do servidor. Nas próximas tentativas com os mesmos filtros, o sistema tentará reaproveitar
+                esse arquivo quebrado e pode entrar em <b>carregamento infinito (loop travado)</b>, exigindo reinício
+                manual da aplicação para ser corrigido.
+            </p>
+            <p style="color:#ffffff; font-size:14.5px; margin:10px 0 0 0; font-weight:700;">
+                ✅ Ajuste todos os filtros primeiro. Só então clique em Calcular. Depois disso, espere.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
+    calc = st.button("Calcular Indicadores",type="primary", disabled=st.session_state.is_processing)
+
+    if  calc:
+        st.session_state.is_processing = True
+        st.rerun()
 
 st.write(f"DEBUG: Linhas encontradas para {uf}: {df_muns.height}")
-
 
 with st.container(border=True):
     log_container = st.container(height=400)
     with log_container:
         log_box = st.empty()
 
-if calc:
+if st.session_state.is_processing:
     
     custom_stream = StreamlitStdoutRedirector(log_box)
-
     with contextlib.redirect_stdout(custom_stream):
+
+        st.warning(
+            "⏳ Processando... **NÃO interrompa, não mude filtros e não recarregue a página** "
+            "até o resultado aparecer. Interromper agora pode corromper o cache e travar o sistema "
+            "em carregamento infinito.",
+            icon="🚨",
+        )
 
         with st.spinner("Testando conexao com DATASUS"):
             try:
@@ -108,9 +153,16 @@ if calc:
                     st.session_state.processed_df = df
             
             except Exception as e:
-                st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
-                st.code(traceback.format_exc(), language="python")
                 st.session_state.processed_df = None
+                st.session_state.last_error = f"🚨 Erro crítico: {type(e).__name__} - {e}"
+                st.session_state.last_traceback = traceback.format_exc()
+
+            st.session_state.is_processing = False
+            st.rerun()
+
+if st.session_state.last_error:
+    st.error(st.session_state.last_error)
+    st.code(st.session_state.last_traceback, language="python")
 
 if st.session_state.processed_df is not None:
     df_result = st.session_state.processed_df

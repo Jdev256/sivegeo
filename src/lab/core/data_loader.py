@@ -216,7 +216,6 @@ class Pysus:
             df = df.pipe(self.processor.parse_sim)
             df = df.pipe(self.processor.transform_sim)
 
-            
             uf_code = self.uf_map.get(str(uf))
             if uf is not None:
                 if isinstance(uf, str):

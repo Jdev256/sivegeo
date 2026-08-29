@@ -76,7 +76,7 @@ class DataProcessor:
     
     def aggregate_sinan(self, df: LazyFrame) -> LazyFrame:
         return (
-            df.group_by(["CID", "DT_NOTIFIC","ANO", "UF", "COD_MUN", "IDADE", "SEXO"])
+            df.group_by(["CID", "DT_NOTIFIC","ANO", "UF", "COD_MUN", "IDADE", "FAIXA_ETARIA","SEXO"])
             .agg(pl.len().alias("TOTAL_CASES"))
         )
     
@@ -102,12 +102,7 @@ class DataProcessor:
                 .cast(pl.Utf8)
                 .str.strip_chars()
                 .str.replace_all(r"\.", ""),
-                #.str.slice(0, 3),
 
-                #pl.col("IDADE").map_batches(
-                #    lambda s: pl.Series(decodifica_idade_SIM(s.to_pandas(), "y")),
-                #    return_dtype=pl.Utf8
-                #).cast(pl.Int32, strict=False),
                 pl.col("IDADE").cast(pl.Utf8, strict=False).str.strip_chars().str.zfill(3),  
                 pl.col("SEXO").cast(pl.Utf8).replace({"1":"M","2":"F"}, default=None),
             ])
@@ -152,7 +147,7 @@ class DataProcessor:
     
     def aggregate_sim(self, df: LazyFrame) -> LazyFrame:
         return (
-            df.group_by(["CID", "DT_DEATH", "ANO", "UF","COD_MUN", "IDADE", "SEXO"])
+            df.group_by(["CID", "DT_DEATH", "ANO", "UF","COD_MUN", "IDADE", "FAIXA_ETARIA" ,"SEXO"])
             .agg(pl.len().alias("TOTAL_DEATHS"))
         )
     
