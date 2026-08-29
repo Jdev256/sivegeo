@@ -172,9 +172,9 @@ if st.session_state.is_processing:
                     st.session_state.processed_fig = fig
 
             except Exception as e:
-                st.error(f"🚨 Erro crítico:{type(e).__name__} - {e}")
-                st.code(traceback.format_exc(), language="python")
                 st.session_state.processed_df = None
+                st.session_state.last_error = f"🚨 Erro crítico: {type(e).__name__} - {e}"
+                st.session_state.last_traceback = traceback.format_exc()
             st.session_state.is_processing = False
             st.rerun()
 
