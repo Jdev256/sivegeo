@@ -18,24 +18,22 @@ output_dir = Path('/home/jturingdev/projects/sivegeo/lab/reports/')
 
 DEFAULT_NETWORK_TIMEOUT = 90
 
+
 def with_timeout(fn, *args, timeout: int = DEFAULT_NETWORK_TIMEOUT, **kwargs):
-    """
-    Executa fn(*args, **kwargs) com um limite de tempo real. Necessário porque
-    geobr, pysus e o cliente do IBGE não expõem parâmetro de timeout, e uma trava
-    do servidor remoto (comum no DATASUS) congela a thread principal do Streamlit
-    para sempre, causando o efeito de "carregamento infinito".
-    Levanta TimeoutError se o limite for excedido.
-    """
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(fn, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except FutureTimeoutError:
-            raise TimeoutError(
-                f"A operação '{getattr(fn, '__name__', fn)}' excedeu o limite de "
-                f"{timeout}s e foi abortada. O servidor remoto pode estar "
-                f"lento/indisponível no momento."
-            )
+
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(fn, *args, **kwargs)
+    try:
+        result = future.result(timeout=timeout)
+        executor.shutdown(wait=False)
+        return result
+    except FutureTimeoutError:
+        executor.shutdown(wait=False)
+        raise TimeoutError(
+            f"A operação '{getattr(fn, '__name__', fn)}' excedeu o limite de "
+            f"{timeout}s e foi abortada. O servidor remoto pode estar "
+            f"lento/indisponível ou bloqueando o IP deste servidor."
+        )
 
 
 class Pysus:
@@ -130,21 +128,15 @@ class Pysus:
 
 
     def get_muns(self, uf, year) -> pl.DataFrame:
-        # Se for tupla, geramos a lista de anos do intervalo
-        anos = range(year[0], year[1] + 1) if isinstance(year, tuple) else [year]
-        
-        dfs = []
-        
-        for ano in anos:
-            lf = self._get_municipality_lookup(uf=uf, year=ano)
-            dfs.append(lf.select(["COD_MUN", "name_muni"]).collect())
-        
+        ano_referencia = year[1] if isinstance(year, tuple) else year
+        lf = self._get_municipality_lookup(uf=uf, year=ano_referencia)
         return (
-            pl.concat(dfs)
+            lf.select(["COD_MUN", "name_muni"])
             .unique()
             .sort("name_muni")
+            .collect()
         )
-    
+
     def test_connection(self, name, object, function):
         print("=" * 70)
         print(f"TESTANDO BASE: {name}")
