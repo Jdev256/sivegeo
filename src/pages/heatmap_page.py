@@ -6,11 +6,15 @@ from pysus.online_data.SINAN import list_diseases
 from lab.core.data_loader import Pysus
 from lab.services.heatmap import HeatMap
 from utils import StreamlitStdoutRedirector
-
+import polars as pl
 st.set_page_config(
     page_title="SIVEGEO",
     layout="wide"
 )
+
+@st.cache_data(ttl=3600, show_spinner="Carregando lista de municípios...")
+def cached_get_muns(uf, year):
+    return load.get_muns(uf=uf, year=year)
 
 @st.cache_resource
 def init_services():
@@ -48,7 +52,12 @@ with st.container(border=True):
     with col2:
         uf = st.selectbox("UF:", uf_map.keys(), disabled=st.session_state.is_processing)
 
-        df_muns = load.get_muns(uf=uf, year=year)
+        try:
+            df_muns = cached_get_muns(uf=uf, year=year)
+        except TimeoutError as e:
+            st.error(f"⚠️ Não foi possível carregar os municípios agora: {e}")
+            df_muns = pl.DataFrame(schema={"COD_MUN": pl.Int32, "name_muni": pl.Utf8})
+
         mun_map = dict(zip(df_muns["name_muni"], df_muns["COD_MUN"]))
         mun_options = ["ALL"] + list(mun_map.keys())
         selected_mun = st.selectbox("MUnicipio", mun_options, disabled=st.session_state.is_processing)

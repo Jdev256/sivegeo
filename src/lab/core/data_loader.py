@@ -4,21 +4,39 @@ import time
 import inspect
 from typing import List, Union
 import polars as pl
-import pyarrow.parquet as pq
-from polars import LazyFrame
 from pysus import SINAN, SIM, SINASC, SIH, PNI
 from pysus.online_data import IBGE
 from .processor import DataProcessor
 import geobr
 import numpy as np
 import logging
-import matplotlib as plt
 from pathlib import Path
-import os
-from abc import ABC
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 logger = logging.getLogger(__name__)
 output_dir = Path('/home/jturingdev/projects/sivegeo/lab/reports/')
+
+DEFAULT_NETWORK_TIMEOUT = 90
+
+def with_timeout(fn, *args, timeout: int = DEFAULT_NETWORK_TIMEOUT, **kwargs):
+    """
+    Executa fn(*args, **kwargs) com um limite de tempo real. Necessário porque
+    geobr, pysus e o cliente do IBGE não expõem parâmetro de timeout, e uma trava
+    do servidor remoto (comum no DATASUS) congela a thread principal do Streamlit
+    para sempre, causando o efeito de "carregamento infinito".
+    Levanta TimeoutError se o limite for excedido.
+    """
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(fn, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except FutureTimeoutError:
+            raise TimeoutError(
+                f"A operação '{getattr(fn, '__name__', fn)}' excedeu o limite de "
+                f"{timeout}s e foi abortada. O servidor remoto pode estar "
+                f"lento/indisponível no momento."
+            )
+
 
 class Pysus:
     def __init__(self):
@@ -70,10 +88,12 @@ class Pysus:
 
         if cache_key in self._geo_cache:
             return self._geo_cache[cache_key]
-        
-        try:
-            gdf = geobr.read_municipality(code_muni=uf, year=years)
 
+        try:
+            gdf = with_timeout(
+                geobr.read_municipality(code_muni=uf, year=years),
+                timeout=DEFAULT_NETWORK_TIMEOUT
+            )
 
             gdf_projected = gdf.to_crs(epsg=5880)
             gdf["lon"] = gdf_projected["geometry"].centroid.to_crs(gdf.crs).x
@@ -96,12 +116,19 @@ class Pysus:
             )
             self._geo_cache[cache_key] = df_lookup
             return df_lookup
+        except TimeoutError as e:
+            logger.error(f"Timeout ao baixar geometria de municípios (uf={uf}, year={years}): {e}")
+            return pl.LazyFrame(schema={
+                "COD_MUN": pl.Int32, "name_muni": pl.Utf8,
+                "lat": pl.Float64, "lon": pl.Float64, "raio_km": pl.Float64
+            })
         except Exception as e:
             return pl.LazyFrame(schema={
                 "COD_MUN": pl.Int32, "name_muni": pl.Utf8,
                 "lat": pl.Float64, "lon": pl.Float64, "raio_km": pl.Float64
             })
-        
+
+
     def get_muns(self, uf, year) -> pl.DataFrame:
         # Se for tupla, geramos a lista de anos do intervalo
         anos = range(year[0], year[1] + 1) if isinstance(year, tuple) else [year]
@@ -181,11 +208,6 @@ class Pysus:
     def load_data_sim(self, cid_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[str, List[str]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
         sim = SIM().load()
 
-        #if isinstance(cid_code, str): '' -> ['']
-        #    cid_code = cid_code.split()
-
-        #if isinstance(year, int): 0 -> [0]
-        #    years = [year]
         if isinstance(year, (list, tuple)):
             year = list(range(min(year), max(year) +1))
         else:
@@ -198,8 +220,8 @@ class Pysus:
             return self._get_empty_sim_schema()
 
         try:
-            files = sim.get_files(group=["CID10"], year=year, uf=uf)
-            path = sim.download(files)
+            files = with_timeout(sim.get_files, group=["CID10"], year=year, uf=uf)
+            path = with_timeout(sim.download, files, timeout=DEFAULT_NETWORK_TIMEOUT * 4)
 
             if not path:
                 logger.warning("Nenhum dado do SIM encontrado para os filtos")
@@ -231,9 +253,7 @@ class Pysus:
                     lf_mun = lf_mun.filter(pl.col("name_muni") == mun)
 
                 df = df.join(lf_mun.select("COD_MUN"), on="COD_MUN", how="semi")
-                
-                #df = df.filter(pl.col("COD_MUN").is_in(lf_mun.select("COD_MUN")))
-            
+
             if year is not None:
                 if isinstance(year, int):
                     df = df.filter(pl.col("ANO") == year)
@@ -274,6 +294,9 @@ class Pysus:
             ibge_df = self.load_data_ibge(source="POP", year=year, uf=uf, mun=mun, pop=pop)
             df = (df.join(ibge_df, on=["COD_MUN", "ANO", "UF"], how="left", coalesce=True))
             return df
+        except TimeoutError as e:
+            logger.error(f"Timeout no load_data_sim: {e}")
+            return self._get_empty_sim_schema()
         except Exception as e:
             logger.error(f"Erro no load_data_sim: {e}")
             return self._get_empty_sim_schema()
@@ -296,10 +319,10 @@ class Pysus:
             return self._get_empty_sim_schema()
 
         try:
-            files = sinan.get_files(dis_code=dis_code, year=year)
+            files = with_timeout(sinan.get_files, dis_code=dis_code, year=year)
             logger.info(files)
             print(f"DEBUG: Arquivos encontrados no servidor para os anos {year}: {files}")
-            paths = sinan.download(files)
+            paths = with_timeout(sinan.download, files, timeout=DEFAULT_NETWORK_TIMEOUT * 4)
 
             if not paths:
                 logger.info("Nenhum dado encontrado para SINAN")
@@ -367,14 +390,15 @@ class Pysus:
             ibge_df = self.load_data_ibge(source="POP", year=year, uf=uf, mun=mun, pop=pop)
             df = (df.join(ibge_df, on=["COD_MUN", "ANO", "UF"], how="left", coalesce=True))
             return df
+        except TimeoutError as e:
+            logger.error(f"Timeout no load_data_sinan: {e}")
+            return self._get_empty_sinan_schema()
         except IOError as e:
             logger.error(f"Erro no I/O dos arquivos: {e}")
             return self._get_empty_sinan_schema()
-        
-    #def load_data_sinasc(self, cid_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[int, List[int]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
-    #    sinasc = SINASC().load()
-    #    files = sinasc.get_files(uf=uf, year=year, group=["DN"])
-    #    return df
+        except Exception as e:
+            logger.error(f"Erro no load_data_sinan: {e}")
+            return self._get_empty_sinan_schema()
     
     def load_data_ibge(self, source: str, year: Union[int, List[int]], uf: Union[str, List[str]], mun: Union[str, List[str]], pop: Union[int, List[int]]) -> pl.LazyFrame:
         
@@ -394,7 +418,7 @@ class Pysus:
         if isinstance(year, list):
             for y in year:
                 try:
-                    raw = IBGE.get_population(source=source, year=y)
+                    raw = with_timeout(IBGE.get_population, source=source, year=y)
 
                     if raw is None or (hasattr(raw, "columns") and len(raw.columns)==0):
                         logger.warning(f" Sem dados do IBGE para o ano {y}, Pulando...")
