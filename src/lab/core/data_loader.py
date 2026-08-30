@@ -111,6 +111,7 @@ class Pysus:
                     .alias("COD_MUN")
                 )
                 .select(["COD_MUN", "name_muni", "lat", "lon", "raio_km"])
+                .unique(subset=["COD_MUN"], keep="first")
             )
             self._geo_cache[cache_key] = df_lookup
             return df_lookup
