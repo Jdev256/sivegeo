@@ -48,6 +48,22 @@ class Indicators:
         cases = self.total_cases(sinan_lf)
         deaths = self.total_deaths(sim_lf)
 
+        print("\n=== DUPLICATAS CASES ===")
+        print(
+            cases
+            .group_by(keys)
+            .agg(pl.len().alias("N"))
+            .filter(pl.col("N") > 1)
+        )
+        
+        print("\n=== DUPLICATAS DEATHS ===")
+        print(
+            deaths
+            .group_by(keys)
+            .agg(pl.len().alias("N"))
+            .filter(pl.col("N") > 1)
+        )
+
         return  (
             cases.join(deaths, on=keys, how="full", coalesce=True, validate="1:1")
             .with_columns([
