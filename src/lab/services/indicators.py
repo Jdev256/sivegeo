@@ -47,7 +47,6 @@ class Indicators:
         keys = ["CID", "ANO", "UF", "COD_MUN", "FAIXA_ETARIA", "SEXO"]
         cases = self.total_cases(sinan_lf)
         deaths = self.total_deaths(sim_lf)
-        )
 
         return  (
             cases.join(deaths, on=keys, how="full", coalesce=True, validate="1:1")
