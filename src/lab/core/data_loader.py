@@ -424,6 +424,13 @@ class Pysus:
                     else:
                         lf_year = pl.from_pandas(raw).lazy()
 
+                    lookup_check = lookup_df.collect() if hasattr(lookup_df, "collect") else lookup_df
+                    n_total = lookup_check.height
+                    n_unique = lookup_check.select("COD_MUN").n_unique()
+                    print(f"LOOKUP_DF ano={y}: {n_total} linhas, {n_unique} COD_MUN únicos")
+                    if n_total != n_unique:
+                        print("DUPLICATAS ENCONTRADAS:", lookup_check.group_by("COD_MUN").agg(pl.len().alias("N")).filter(pl.col("N") > 1))
+
                     lf_year = (
                         lf_year
                         .pipe(self.processor.parse_ibge)
