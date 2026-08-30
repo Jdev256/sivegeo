@@ -25,6 +25,18 @@ class KPIS:
         deaths = self.indicator.total_deaths(self.sim_lf)
         cases = self.indicator.total_cases(self.sinan_lf)
 
+        # --- DIAGNÓSTICO TEMPORÁRIO ---
+        cases_df = cases.collect()
+        deaths_df = deaths.collect()
+        print("CASES:", cases_df.height, "linhas |", cases_df.select(self._geo_keys).n_unique(), "combinações únicas de chave")
+        print("DEATHS:", deaths_df.height, "linhas |", deaths_df.select(self._geo_keys).n_unique(), "combinações únicas de chave")
+    
+        dup_cases = cases_df.group_by(self._geo_keys).agg(pl.len().alias("N")).filter(pl.col("N") > 1)
+        dup_deaths = deaths_df.group_by(self._geo_keys).agg(pl.len().alias("N")).filter(pl.col("N") > 1)
+        print("Duplicatas em CASES:\n", dup_cases)
+        print("Duplicatas em DEATHS:\n", dup_deaths)
+        # --- FIM DIAGNÓSTICO ---
+
         kpis_lf = (
             cases.join(deaths, on=self._geo_keys, how="full", coalesce=True, validate="1:1")
             .with_columns([
