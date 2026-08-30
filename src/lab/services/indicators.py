@@ -49,7 +49,7 @@ class Indicators:
         deaths = self.total_deaths(sim_lf)
 
         return  (
-            cases.join(deaths, on=keys, how="full", coalesce=True)
+            cases.join(deaths, on=keys, how="full", coalesce=True, validate="1:1")
             .with_columns([
                 pl.col("TOTAL_CASES").fill_null(0),
                 pl.col("TOTAL_DEATHS").fill_null(0)
