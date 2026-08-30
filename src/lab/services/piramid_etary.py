@@ -59,9 +59,9 @@ class PiramidEtary:
             color="SEXO",
             orientation='h',
             text="VALUE_ABS",
-            title=f"Distribuicao de Faixa Etaria e Sexo ({metric}",
+            title=f"Distribuicao de Faixa Etaria e Sexo ({metric})",
             category_orders={"SEXO": ["M", "F"]},
-            labels={"SEXO": "Sexo", "VALUE_PURAMID": "Quantidade", "FAIXA_ETARIA": "Faixa Etaria"}
+            labels={"SEXO": "Sexo", "VALUE_PyRAMID": "Quantidade", "FAIXA_ETARIA": "Faixa Etaria"}
         )
 
         fig.update_traces(texttemplate="%{text:,d}", textposition="inside")
