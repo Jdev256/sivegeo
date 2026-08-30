@@ -426,7 +426,9 @@ class Pysus:
                     lf_year = (
                         lf_year
                         .pipe(self.processor.parse_ibge)
-                        .pipe(self.processor.transform_ibge)
+                        .pipe(self.processor.transform_ibge),
+                        .group_by(["COD_MUN","ANO","UF"])
+                        .agg(pl.col("POPULACAO").sum)
                     )
 
                     if year is not None:
