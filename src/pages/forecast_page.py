@@ -133,7 +133,7 @@ if st.session_state.is_processing:
                     mun=mun_filter,
                     age=age_filter,
                     sex=sex_filter,
-                    pop=int(pop)).collect()
+                    pop=int(pop))
                 
                 df = service.prepare_data(
                     disease=dis_code, 
