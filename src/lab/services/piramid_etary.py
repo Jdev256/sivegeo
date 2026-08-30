@@ -48,10 +48,13 @@ class PiramidEtary:
         )
 
 
-    def plot(self, df: pl.DataFrame, metric : str) -> go.Figure:
+    def plot(self, df: pl.DataFrame, metric: str) -> go.Figure:
         if df.is_empty():
             return go.Figure()
-
+    
+        faixa_order = ["00-09", "10-19", "20-29", "30-39", "40-49",
+                       "50-59", "60-69", "70-79", "80+"]
+    
         fig = px.bar(
             df.to_pandas(),
             x="VALUE_PYRAMID",
@@ -60,12 +63,16 @@ class PiramidEtary:
             orientation='h',
             text="VALUE_ABS",
             title=f"Distribuicao de Faixa Etaria e Sexo ({metric})",
-            category_orders={"SEXO": ["M", "F"]},
+            category_orders={
+                "SEXO": ["M", "F"],
+                "FAIXA_ETARIA": faixa_order,  
+            },
             labels={"SEXO": "Sexo", "VALUE_PYRAMID": "Quantidade", "FAIXA_ETARIA": "Faixa Etaria"}
         )
-
+    
         fig.update_traces(texttemplate="%{text:,d}", textposition="inside")
         fig.update_xaxes(tickformat="s", zeroline=True)
+        fig.update_yaxes(type="category")  
         fig.update_layout(
             barmode="relative",
             paper_bgcolor="rgba(0,0,0,0)",
