@@ -37,6 +37,21 @@ class KPIS:
         print("Duplicatas em DEATHS:\n", dup_deaths)
         # --- FIM DIAGNÓSTICO ---
 
+        print("\n=== DUPLICATAS CASES ===")
+        print(
+            cases
+            .group_by(self._geo_keys)
+            .agg(pl.len().alias("N"))
+            .filter(pl.col("N") > 1)
+        )
+        
+        print("\n=== DUPLICATAS DEATHS ===")
+        print(
+            deaths
+            .group_by(self._geo_keys)
+            .agg(pl.len().alias("N"))
+            .filter(pl.col("N") > 1)
+
         kpis_lf = (
             cases.join(deaths, on=self._geo_keys, how="full", coalesce=True, validate="1:1")
             .with_columns([
