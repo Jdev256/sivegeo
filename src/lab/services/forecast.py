@@ -26,7 +26,6 @@ class ForecastView:
             .agg(pl.col("TOTAL_CASES").sum().alias("y"))
             .rename({"DT_NOTIFIC":"ds"})
             .sort("ds")
-            .collect()
             .to_pandas()
         )
         return self.df_prepared
