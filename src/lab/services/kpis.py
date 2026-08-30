@@ -18,7 +18,7 @@ class KPIS:
         
         self.sim_lf = self.service.load_data_sim(cid_code=self.cid_code, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)
         self.pop = self.service.load_data_ibge(year=year, uf=uf, mun=mun, pop=pop, source="POP")
-        self._geo_keys=["CID","ANO", "UF", "COD_MUN", "name_muni", "POPULACAO","FAIXA_ETARIA", "SEXO"]
+        self._geo_keys=["CID","ANO", "UF", "COD_MUN", "FAIXA_ETARIA", "SEXO"]
 
 
     def main(self):
