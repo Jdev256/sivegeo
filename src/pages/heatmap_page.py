@@ -188,7 +188,7 @@ if st.session_state.processed_df is not None:
     fig_result = st.session_state.processed_fig
 
     if df_result.height > 0:
-        st.success(f"Dados processados com sucesso! {df.height} encontrados")
+        st.success(f"Dados processados com sucesso! {df_result.height} encontrados")
         with tab1:
             st.plotly_chart(fig, use_container_width=True)
         with tab2:
