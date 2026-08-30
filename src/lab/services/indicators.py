@@ -21,7 +21,7 @@ class Indicators:
             .agg([
                 agg_expr,
                 pl.col("name_muni").first(),
-                pl.col("POPULACAO").first(),   # ou .max(), mas nunca chave
+                pl.col("POPULACAO").first(),
             ])
         )
     
