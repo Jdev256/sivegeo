@@ -175,6 +175,10 @@ if st.session_state.is_processing:
             st.session_state.is_processing = False
             st.rerun()
 
+if st.session_state.last_error:
+    st.error(st.session_state.last_error)
+    st.code(st.session_state.last_traceback, language="python")
+
 tab1, tab2 = st.tabs(["Grafico", "Tabela"])
 if st.session_state.processed_df is not None:
     df_result = st.session_state.processed_df
