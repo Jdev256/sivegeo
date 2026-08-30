@@ -47,21 +47,6 @@ class Indicators:
         keys = ["CID", "ANO", "UF", "COD_MUN", "FAIXA_ETARIA", "SEXO"]
         cases = self.total_cases(sinan_lf)
         deaths = self.total_deaths(sim_lf)
-
-        print("\n=== DUPLICATAS CASES ===")
-        print(
-            cases
-            .group_by(keys)
-            .agg(pl.len().alias("N"))
-            .filter(pl.col("N") > 1)
-        )
-        
-        print("\n=== DUPLICATAS DEATHS ===")
-        print(
-            deaths
-            .group_by(keys)
-            .agg(pl.len().alias("N"))
-            .filter(pl.col("N") > 1)
         )
 
         return  (
