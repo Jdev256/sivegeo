@@ -190,8 +190,8 @@ if st.session_state.processed_df is not None:
     if df_result.height > 0:
         st.success(f"Dados processados com sucesso! {df_result.height} encontrados")
         with tab1:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig_result, use_container_width=True)
         with tab2:
-            tab2.dataframe(df, height=250, use_container_width=True)
+            tab2.dataframe(df_result, height=250, use_container_width=True)
     else:
         st.warning(f"Nenhum registro encontrado")
