@@ -9,17 +9,20 @@ class Indicators:
         self.load = Pysus()
 
     def _aggregate(self, lf: pl.LazyFrame, target_col: str) -> pl.LazyFrame:
-        keys = ["CID", "ANO", "UF", "COD_MUN", "name_muni", "POPULACAO", "FAIXA_ETARIA", "SEXO"]
+        keys = ["CID", "ANO", "UF", "COD_MUN", "FAIXA_ETARIA", "SEXO"]
 
         if target_col in lf.collect_schema().names():
-            return (
-                lf.group_by(keys)
-                .agg(pl.col(target_col).sum().alias(target_col))
-            )
+            agg_expr = pl.col(target_col).sum().alias(target_col)
+        else:
+            agg_expr = pl.len().alias(target_col)
 
         return (
             lf.group_by(keys)
-            .agg(pl.len().alias(target_col))
+            .agg([
+                agg_expr,
+                pl.col("name_muni").first(),
+                pl.col("POPULACAO").first(),   # ou .max(), mas nunca chave
+            ])
         )
     
     def total_cases(self, df: pl.LazyFrame) -> pl.LazyFrame:
