@@ -34,28 +34,49 @@ class Indicators:
         df = self._aggregate(df, "TOTAL_DEATHS",)
         return df
 
+    @staticmethod
+    def _merge_case_death_data(cases: pl.DataFrame, deaths: pl.DataFrame, keys: list[str]) -> pl.DataFrame:
+        if cases.is_empty() and deaths.is_empty():
+            return pl.DataFrame(schema={"CID": pl.String, "ANO": pl.Int32, "UF": pl.Int32, "COD_MUN": pl.Int32, "FAIXA_ETARIA": pl.String, "SEXO": pl.String})
+
+        cases_unique = cases.group_by(keys).agg([
+            pl.col("TOTAL_CASES").sum().alias("TOTAL_CASES"),
+            pl.col("name_muni").first().alias("name_muni"),
+            pl.col("POPULACAO").first().alias("POPULACAO"),
+        ])
+        deaths_unique = deaths.group_by(keys).agg([
+            pl.col("TOTAL_DEATHS").sum().alias("TOTAL_DEATHS"),
+            pl.col("name_muni").first().alias("name_muni"),
+            pl.col("POPULACAO").first().alias("POPULACAO"),
+        ])
+
+        return (
+            cases_unique
+            .join(deaths_unique, on=keys, how="full", coalesce=True)
+            .with_columns([
+                pl.col("TOTAL_CASES").fill_null(0),
+                pl.col("TOTAL_DEATHS").fill_null(0),
+                pl.col("POPULACAO").fill_null(0),
+            ])
+        )
+
     def main(self, disease, year, uf, mun, age, sex, pop):
         sinan_lf = self.load.load_data_sinan(
             dis_code=disease, year=year, uf=uf, mun=mun, age=age, sex=sex, pop=pop
         )
         if len(sinan_lf.collect_schema().names()) == 0:
             raise ConnectionError("Falha ao comunicar com o servidor do DATASUS. Tente novamente em instantes.")
-        
+
         cid_code = sinan_lf.select(pl.col("CID").first()).collect().item()
         sim_lf = self.load.load_data_sim(cid_code=cid_code, year=year, uf=uf, mun=mun, sex=sex, age=age, pop=pop)
 
         keys = ["CID", "ANO", "UF", "COD_MUN", "FAIXA_ETARIA", "SEXO"]
-        cases = self.total_cases(sinan_lf)
-        deaths = self.total_deaths(sim_lf)
+        cases = self.total_cases(sinan_lf).collect()
+        deaths = self.total_deaths(sim_lf).collect()
 
-        return  (
-            cases.join(deaths, on=keys, how="full", coalesce=True, validate="1:1")
-            .with_columns([
-                pl.col("TOTAL_CASES").fill_null(0),
-                pl.col("TOTAL_DEATHS").fill_null(0)
-            ])
+        return (
+            self._merge_case_death_data(cases, deaths, keys)
             .sort("ANO","COD_MUN")
-            .collect()
         )
 
 if __name__ == "__main__":
