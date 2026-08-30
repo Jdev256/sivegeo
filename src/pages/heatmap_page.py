@@ -128,6 +128,15 @@ if st.session_state.is_processing:
 
         with st.spinner("Testando conexao com DATASUS"):
             try:
+                load = service.load_data(
+                    disease=dis_code,
+                    year=year,
+                    uf=uf,
+                    mun=mun_filter,
+                    sex=sex_filter,
+                    age=age_filter,
+                    pop=pop
+                )
                 df = service.prepare_data(
                     disease=dis_code, 
                     year=year, 
@@ -148,11 +157,11 @@ if st.session_state.is_processing:
                     pop=int(pop)
                 )
                 
-                if df is None:
+                if load is None:
                     st.warning("⚠️ Não foi possível carregar os dados. Motivo: Conexão com o DATASUS falhou")
                     st.info("ℹ️ Verifique o terminal do servidor para ver o log detalhado")
                 
-                elif df.height == 0:
+                elif load.height == 0:
                     st.warning("Nenhum registro encontrado")
                     st.info("Verifique o terminal do servidor para mais informacoes")
                 
