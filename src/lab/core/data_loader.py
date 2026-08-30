@@ -313,7 +313,7 @@ class Pysus:
             sinan = SINAN().load()
         except (AttributeError, ConnectionError, TimeoutError, OSError) as e:
             logger.error(f"Falha ao conectar com servidor FTP do DATASUS (SINAN): {e}")
-            return self._get_empty_sim_schema()
+            return self._get_empty_sinan_schema()
         
         if isinstance(dis_code, str):
             dis_code = dis_code.split()
@@ -327,7 +327,7 @@ class Pysus:
 
         if not self.test_connection(name="DATASUS - SINAN", object=sinan, function=test):
             logger.error("Execucao Bloqueada: falha na conexao com a base de dados SINAN")
-            return self._get_empty_sim_schema()
+            return self._get_empty_sinan_schema()
 
         try:
             files = with_timeout(sinan.get_files, dis_code=dis_code, year=year)
