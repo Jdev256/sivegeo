@@ -10,15 +10,7 @@ class Ranking:
         pass
 
     def load_data(self, disease, year, uf, mun, sex, age, pop) -> pl.DataFrame:
-        kpis_service = KPIS(
-            dis_code=disease,
-            year=year,
-            uf=uf,
-            mun=mun,
-            age=age,
-            sex=sex,
-            pop=pop
-        )
+        kpis_service = KPIS(dis_code=disease,year=year,uf=uf,mun=mun,age=age,sex=sex,pop=pop)
         return kpis_service.main()
 
     def prepare_data(self, df: pl.DataFrame, metric: str, top_n: int = 10) -> pl.DataFrame:
@@ -31,7 +23,7 @@ class Ranking:
                 pl.col("TOTAL_CASES").sum(),
                 pl.col("TOTAL_DEATHS").sum(),
                 pl.col("POPULACAO").max(),
-                pl.col(metric).mean().alias("metric")
+                pl.col(metric).mean()
             ])
             .sort(metric, descending=True)
             .head(top_n)
