@@ -21,8 +21,8 @@ class Ranking:
         )
         return kpis_service.main()
 
-    def prepare_data(self, df: pl.DataFrame, metric: List[str], top_n: int = 10) -> pl.DataFrame:
-        if df.is_empty() or df.filter(pl.col("METRIC").is_not_nan()):
+    def prepare_data(self, df: pl.DataFrame, metric: str, top_n: int = 10) -> pl.DataFrame:
+        if df.is_empty() or metric not in df.columns:
             return pl.DataFrame()
         return (
             df.filter(pl.col("name_muni").is_not_null())
