@@ -209,7 +209,11 @@ class Pysus:
 
 
     def load_data_sim(self, cid_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[str, List[str]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
-        sim = SIM().load()
+        try:
+            sim = SIM().load()
+        except (AttributeError, ConnectionError, TimeoutError, OSError) as e:
+            logger.error(f"Falha ao conectar com servidor FTP do DATASUS (SIM): {e}")
+            return self._get_empty_sim_schema()
 
         if isinstance(year, (list, tuple)):
             year = list(range(min(year), max(year) +1))
@@ -305,7 +309,11 @@ class Pysus:
             return self._get_empty_sim_schema()
 
     def load_data_sinan(self, dis_code: Union[str, List[str]], year: Union[int, List[int]], uf: Union[str, List[str]], age: Union[int, List[int]], mun: Union[str, List[str]], sex: Union[int, List[int]], pop: Union[int, List[int]]) -> pl.LazyFrame:
-        sinan = SINAN().load()
+        try:
+            sinan = SINAN().load()
+        except (AttributeError, ConnectionError, TimeoutError, OSError) as e:
+            logger.error(f"Falha ao conectar com servidor FTP do DATASUS (SINAN): {e}")
+            return self._get_empty_sim_schema()
         
         if isinstance(dis_code, str):
             dis_code = dis_code.split()
