@@ -80,17 +80,26 @@ class Pysus:
         })
 
     def _get_municipality_lookup(self, uf, year) -> pl.LazyFrame:
-        years = year[0] if isinstance(year, list) else year
-        target_year = year[1] if isinstance(year, tuple) else year
-        cache_key = (uf, years)
+        if isinstance(year, (list, tuple)):
+            year = year[0]
+        if year is None:
+            return pl.LazyFrame(schema={
+                "COD_MUN": pl.Int32, "name_muni": pl.Utf8,
+                "lat": pl.Float64, "lon": pl.Float64, "raio_km": pl.Float64
+            })
+        years = int(year)
+        uf_key = str(uf).upper() if isinstance(uf, str) else uf
+        cache_key = (uf_key, years)
 
         if cache_key in self._geo_cache:
             return self._geo_cache[cache_key]
 
         try:
             gdf = with_timeout(
-                geobr.read_municipality(code_muni=uf, year=years),
-                timeout=DEFAULT_NETWORK_TIMEOUT
+                geobr.read_municipality,
+                code_muni=uf,
+                year=years,
+                timeout=DEFAULT_NETWORK_TIMEOUT,
             )
 
             gdf_projected = gdf.to_crs(epsg=5880)
@@ -122,6 +131,7 @@ class Pysus:
                 "lat": pl.Float64, "lon": pl.Float64, "raio_km": pl.Float64
             })
         except Exception as e:
+            logger.warning(f"Falha ao montar lookup de municípios (uf={uf}, year={years}): {e}")
             return pl.LazyFrame(schema={
                 "COD_MUN": pl.Int32, "name_muni": pl.Utf8,
                 "lat": pl.Float64, "lon": pl.Float64, "raio_km": pl.Float64
