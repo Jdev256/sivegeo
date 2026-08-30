@@ -27,13 +27,10 @@ if "processed_df" not in st.session_state:
     st.session_state.processed_df = None
 if "processed_fig" not in st.session_state:
     st.session_state.processed_fig = None
-
 if "is_processing" not in st.session_state:
     st.session_state.is_processing = False
-
 if "last_error" not in st.session_state:
     st.session_state.last_error = None
-
 if "last_traceback" not in st.session_state:
     st.session_state.last_traceback = None
 
